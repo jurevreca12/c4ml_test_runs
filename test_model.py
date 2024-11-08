@@ -17,6 +17,7 @@ from server import get_server, create_server
 
 
 def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir):
+    starttime = time.time()
     accelerators, lbir_model = generate.accelerators(
         qonnx_model,
         ishape=brevitas_model.ishape,
@@ -43,17 +44,17 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir):
         "-nolog",
         "-tclargs", work_dir
     ]
-    starttime = time.time()
     with open(f"{work_dir}/vivado.log", 'w') as log_file:
         cp = subprocess.run(commands, stdout=log_file, stderr=log_file)
-    duration = time.time() - starttime
     assert cp.returncode == 0
+    duration = time.time() - starttime
     with open(f"{work_dir}/time.log", 'w') as time_file:
         time_file.write(f"CHISEL4ML SYNTHESIS TIME:\n")
         time_file.write(f"{str(duration)}\n")
 
 
 def test_hls4ml(qonnx_model, work_dir):
+    starttime = time.time()
     qonnx_model = qonnx.util.cleanup.cleanup_model(qonnx_model)
     qonnx_model = qonnx_model.transform(ConvertToChannelsLastAndClean())
     qonnx_model = qonnx_model.transform(GemmToMatMul())
@@ -73,9 +74,18 @@ def test_hls4ml(qonnx_model, work_dir):
         part='xcvu9p-flga2104-2L-e'
     )
     hls_model.compile()
-    starttime = time.time()
-    hls_model.build(csim=False, vsynth=True)
-    hls4ml.report.read_vivado_report('hls4ml')
+    hls_model.build(csim=False, vsynth=False)
+    commands = [
+        "vivado", 
+        "-mode", "batch", 
+        "-source", "synth_hls.tcl", 
+        "-nojournal",
+        "-nolog",
+        "-tclargs", work_dir
+    ]
+    with open(f"{work_dir}/vivado.log", 'w') as log_file:
+        cp = subprocess.run(commands, stdout=log_file, stderr=log_file)
+    assert cp.returncode == 0
     duration = time.time() - starttime
     with open(f"{work_dir}/time.log", 'w') as time_file:
         time_file.write(f"HLS4ML SYNTHESIS TIME:\n")
