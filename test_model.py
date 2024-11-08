@@ -1,4 +1,5 @@
 import os
+import time
 import itertools
 import torch
 import onnx
@@ -37,9 +38,14 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir):
         "-nolog",
         "-tclargs", f"{work_dir}/c4ml"
     ]
+    starttime = time.time()
     with open(f"{work_dir}/c4ml/vivado.log", 'w') as log_file:
         cp = subprocess.run(commands, stdout=log_file, stderr=log_file)
+    duration = time.time() - starttime
     assert cp.returncode == 0
+    with open(f"{work_dir}/c4ml/time.log", 'w') as time_file:
+        time_file.write(f"{str(duration)}\n")
+
 
 def test_model(brevitas_model, test_data, work_dir): 
     qonnx_model = transform.brevitas_to_qonnx(brevitas_model, brevitas_model.ishape)
