@@ -10,8 +10,8 @@ from server import get_server, create_server
 from test_model import test_model
 
 gen_in_dict = {
-    "in_features": (64, 256, 1024),
-    "out_features": (64,),
+    "in_features": (2,),
+    "out_features": (3,),
     "bias":  (True,),
     "iq": (4,),
     "wq": (4,),
