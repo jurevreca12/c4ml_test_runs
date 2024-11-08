@@ -1,1 +1,2 @@
 ./chisel4ml/
+hls4ml/

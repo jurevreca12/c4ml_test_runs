@@ -15,4 +15,4 @@ synth_design -top NeuronProcessingUnit -retiming -flatten_hierarchy full
 opt_design
 report_timing_summary -file $work_dir/post_synth_timing_summary.rpt
 report_utilization -file $work_dir/utilization.rpt
-report_design_analysis -csv design_analysis.csv -timing
+report_design_analysis -csv $work_dir/design_analysis.csv -timing
