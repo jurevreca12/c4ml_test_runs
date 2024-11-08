@@ -1,6 +1,7 @@
 import os
 import time
 import itertools
+import multiprocessing
 import torch
 import onnx
 import qonnx
@@ -14,9 +15,10 @@ from chisel4ml import transform
 from chisel4ml import generate
 from linear_model import get_linear_layer_model
 from server import get_server, create_server
+import brevitas
 
 
-def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir):
+def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir):
     starttime = time.time()
     accelerators, lbir_model = generate.accelerators(
         qonnx_model,
@@ -39,7 +41,7 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir):
     commands = [
         "vivado", 
         "-mode", "batch", 
-        "-source", "synth.tcl", 
+        "-source", f"{base_dir}/synth.tcl", 
         "-nojournal",
         "-nolog",
         "-tclargs", work_dir
@@ -53,7 +55,7 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir):
         time_file.write(f"{str(duration)}\n")
 
 
-def test_hls4ml(qonnx_model, work_dir):
+def test_hls4ml(qonnx_model, work_dir, base_dir):
     starttime = time.time()
     qonnx_model = qonnx.util.cleanup.cleanup_model(qonnx_model)
     qonnx_model = qonnx_model.transform(ConvertToChannelsLastAndClean())
@@ -78,7 +80,7 @@ def test_hls4ml(qonnx_model, work_dir):
     commands = [
         "vivado", 
         "-mode", "batch", 
-        "-source", "synth_hls.tcl", 
+        "-source", f"{base_dir}/synth_hls.tcl", 
         "-nojournal",
         "-nolog",
         "-tclargs", work_dir
@@ -90,11 +92,14 @@ def test_hls4ml(qonnx_model, work_dir):
     with open(f"{work_dir}/time.log", 'w') as time_file:
         time_file.write(f"HLS4ML SYNTHESIS TIME:\n")
         time_file.write(f"{str(duration)}\n")
-                        
 
-def test_model(brevitas_model, test_data, work_dir): 
+lock = multiprocessing.Lock()
+def test_model(brevitas_model, test_data, work_dir, base_dir):
+    global lock
+    lock.acquire()
     qonnx_model = transform.brevitas_to_qonnx(brevitas_model, brevitas_model.ishape)
+    lock.release()
     os.makedirs(f"{work_dir}/qonnx")
     onnx.save(qonnx_model.model, f"{work_dir}/qonnx/model.onnx")
-    test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml/")
-    test_hls4ml(qonnx_model, f"{work_dir}/hls4ml/")
+    test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml/", base_dir)
+    test_hls4ml(qonnx_model, f"{work_dir}/hls4ml/", base_dir)
