@@ -45,7 +45,7 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir):
         "-source", f"{base_dir}/synth.tcl", 
         "-nojournal",
         "-nolog",
-        "-tclargs", work_dir
+        "-tclargs", work_dir, base_dir
     ]
     with open(f"{work_dir}/vivado.log", 'w') as log_file:
         cp = subprocess.run(commands, stdout=log_file, stderr=log_file)
@@ -84,7 +84,7 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
         "-source", f"{base_dir}/synth_hls.tcl", 
         "-nojournal",
         "-nolog",
-        "-tclargs", work_dir
+        "-tclargs", work_dir, base_dir
     ]
     with open(f"{work_dir}/vivado.log", 'w') as log_file:
         cp = subprocess.run(commands, stdout=log_file, stderr=log_file)

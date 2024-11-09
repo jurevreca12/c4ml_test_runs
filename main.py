@@ -17,8 +17,8 @@ import json
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 linear_layer_var_in_features_exp = {
-    "in_features": (2,3,),
-    "out_features": (3,),
+    "in_features": (16, 32, 64, 128, 256),
+    "out_features": (32,),
     "bias":  (True,),
     "iq": (4,),
     "wq": (4,),
@@ -44,7 +44,7 @@ def run_test(*args):
     exp_name = experiments[current_exp][2]
     work_dir = get_work_dir(exp_dict.keys(), args[0], base=f"/circuits/{exp_name}/")
     brevitas_model, data = model_gen(*args[0])
-    return test_model(brevitas_model, data, work_dir, os.getcwd())
+    return test_model(brevitas_model, data, work_dir, SCRIPT_DIR)
     
 
 if __name__ == "__main__":
