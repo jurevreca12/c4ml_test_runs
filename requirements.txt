@@ -1,2 +1,4 @@
 ./chisel4ml/
 hls4ml/
+vivado-report-parser
+pandas

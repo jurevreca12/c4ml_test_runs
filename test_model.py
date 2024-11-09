@@ -3,6 +3,7 @@ import time
 import itertools
 import multiprocessing
 import torch
+import brevitas
 import onnx
 import qonnx
 from qonnx.transformation.channels_last import ConvertToChannelsLastAndClean
@@ -15,7 +16,7 @@ from chisel4ml import transform
 from chisel4ml import generate
 from linear_model import get_linear_layer_model
 from server import get_server, create_server
-import brevitas
+from parse_reports import parse_reports
 
 
 def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir):
@@ -102,4 +103,7 @@ def test_model(brevitas_model, test_data, work_dir, base_dir):
     os.makedirs(f"{work_dir}/qonnx")
     onnx.save(qonnx_model.model, f"{work_dir}/qonnx/model.onnx")
     test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml/", base_dir)
+    c4ml_res = parse_reports(f"{work_dir}/c4ml/")
     test_hls4ml(qonnx_model, f"{work_dir}/hls4ml/", base_dir)
+    hls4ml_res = parse_reports(f"{work_dir}/hls4ml/")
+    return {'work_dir': work_dir, 'chisel4ml': c4ml_res, 'hls4ml': hls4ml_res}

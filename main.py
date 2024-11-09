@@ -11,6 +11,10 @@ from linear_model import get_linear_layer_model
 from server import get_server, create_server
 from test_model import test_model
 import argparse
+import json
+
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 linear_layer_var_in_features_exp = {
     "in_features": (2,3,),
@@ -31,7 +35,7 @@ current_exp = 0
 def get_work_dir(keys, values, base):
     str_list = list(map(lambda kv: f"{kv[0]}{str(kv[1])}", zip(keys, values)))
     specific_dir = functools.reduce(lambda a,b: a + "_" + b, str_list)
-    return os.getcwd() + base + specific_dir
+    return SCRIPT_DIR + base + specific_dir
 
 def run_test(*args):
     global current_exp
@@ -40,7 +44,7 @@ def run_test(*args):
     exp_name = experiments[current_exp][2]
     work_dir = get_work_dir(exp_dict.keys(), args[0], base=f"/circuits/{exp_name}/")
     brevitas_model, data = model_gen(*args[0])
-    test_model(brevitas_model, data, work_dir, os.getcwd())
+    return test_model(brevitas_model, data, work_dir, os.getcwd())
     
 
 if __name__ == "__main__":
@@ -54,9 +58,14 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     create_server('chisel4ml/out/chisel4ml/assembly.dest/out.jar', args.num_workers)
+    results = []
     for exp in experiments:
         feat_list = list(itertools.product(*exp[0].values()))
         with ThreadPool(args.num_workers) as pool:
-            pool.map(run_test, feat_list)
+            exp_results = pool.map(run_test, feat_list)
         current_exp += 1
+        results.append(exp_results)
 
+    ser_res = json.dumps(results)
+    with open(f'{SCRIPT_DIR}/results.json', 'w') as f:
+        f.write(ser_res)
