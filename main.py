@@ -26,8 +26,30 @@ linear_layer_var_in_features_exp = {
     "oq": (4,)
 }
 
+linear_layer_var_iq_features_exp = {
+    "in_features": (32,),
+    "out_features": (32,),
+    "bias":  (True,),
+    "iq": (2, 3, 4, 5, 6, 7),
+    "wq": (4,),
+    "bq": (8,),
+    "oq": (4,)
+}
+
+linear_layer_var_wq_features_exp = {
+    "in_features": (32,),
+    "out_features": (32,),
+    "bias":  (True,),
+    "iq": (4,),
+    "wq": (2, 3, 4, 5, 6, 7),
+    "bq": (8,),
+    "oq": (4,)
+}
+
 experiments = (
     (linear_layer_var_in_features_exp, get_linear_layer_model, "linear_layer_var_in_features"),
+    (linear_layer_var_iq_features_exp, get_linear_layer_model, "linear_layer_var_iq_features"),
+    (linear_layer_var_wq_features_exp, get_linear_layer_model, "linear_layer_var_wq_features"),
 )
 current_exp = 0
 
@@ -66,6 +88,6 @@ if __name__ == "__main__":
         current_exp += 1
         results.append(exp_results)
 
-    ser_res = json.dumps(results)
-    with open(f'{SCRIPT_DIR}/results.json', 'w') as f:
-        f.write(ser_res)
+        ser_res = json.dumps(results)
+        with open(f'{SCRIPT_DIR}/results_exp_{exp[2]}.json', 'w') as f:
+            f.write(ser_res)

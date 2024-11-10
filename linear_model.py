@@ -29,7 +29,7 @@ def get_linear_layer_model(in_features, out_features, bias, iq, wq, bq, oq):
                 input_quant=IntActQuant,
                 input_bit_width=iq,
                 input_scaling_impl_type="const",
-                input_scaling_init=1 if iq == 1 else 2 ** (iq - 1) - 1,
+                input_scaling_init=1 if iq == 1 else 2 ** (iq - 1),
                 output_quant=IntActQuant,
                 output_bit_width=oq,
                 output_scaling_impl_type="const",
