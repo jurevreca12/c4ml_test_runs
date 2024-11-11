@@ -19,8 +19,8 @@ from server import get_server, create_server
 from parse_reports import parse_reports
 
 
-def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir):
-    starttime = time.time()
+def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir, top_name):
+    starttime = time.perf_counter()
     accelerators, lbir_model = generate.accelerators(
         qonnx_model,
         ishape=brevitas_model.ishape,
@@ -45,19 +45,19 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir):
         "-source", f"{base_dir}/synth.tcl", 
         "-nojournal",
         "-nolog",
-        "-tclargs", work_dir, base_dir
+        "-tclargs", work_dir, base_dir, top_name
     ]
     with open(f"{work_dir}/vivado.log", 'w') as log_file:
         cp = subprocess.run(commands, stdout=log_file, stderr=log_file)
     assert cp.returncode == 0
-    duration = time.time() - starttime
+    duration = time.perf_counter() - starttime
     with open(f"{work_dir}/time.log", 'w') as time_file:
         time_file.write(f"CHISEL4ML SYNTHESIS TIME:\n")
         time_file.write(f"{str(duration)}\n")
 
 
 def test_hls4ml(qonnx_model, work_dir, base_dir):
-    starttime = time.time()
+    starttime = time.perf_counter()
     qonnx_model = qonnx.util.cleanup.cleanup_model(qonnx_model)
     qonnx_model = qonnx_model.transform(ConvertToChannelsLastAndClean())
     qonnx_model = qonnx_model.transform(GemmToMatMul())
@@ -89,20 +89,20 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
     with open(f"{work_dir}/vivado.log", 'w') as log_file:
         cp = subprocess.run(commands, stdout=log_file, stderr=log_file)
     assert cp.returncode == 0
-    duration = time.time() - starttime
+    duration = time.perf_counter() - starttime
     with open(f"{work_dir}/time.log", 'w') as time_file:
         time_file.write(f"HLS4ML SYNTHESIS TIME:\n")
         time_file.write(f"{str(duration)}\n")
 
 lock = multiprocessing.Lock()
-def test_model(brevitas_model, test_data, work_dir, base_dir):
+def test_model(brevitas_model, test_data, work_dir, base_dir, top_name):
     global lock
     lock.acquire()
     qonnx_model = transform.brevitas_to_qonnx(brevitas_model, brevitas_model.ishape)
     lock.release()
     os.makedirs(f"{work_dir}/qonnx")
     onnx.save(qonnx_model.model, f"{work_dir}/qonnx/model.onnx")
-    test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml/", base_dir)
+    test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml/", base_dir, top_name)
     c4ml_res = parse_reports(f"{work_dir}/c4ml/")
     test_hls4ml(qonnx_model, f"{work_dir}/hls4ml/", base_dir)
     hls4ml_res = parse_reports(f"{work_dir}/hls4ml/")

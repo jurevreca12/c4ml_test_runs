@@ -9,6 +9,7 @@ from chisel4ml import transform
 from chisel4ml import generate
 from linear_model import get_linear_layer_model
 from conv_model import get_conv_layer_model
+from maxpool_model import get_maxpool_layer_model
 from server import get_server, create_server
 from test_model import test_model
 import argparse
@@ -49,7 +50,7 @@ linear_layer_var_wq_exp = {
 
 conv_layer_var_input_ch_exp = {
     "input_size": ((16, 16),),
-    "input_ch": (1, 2, 4, 8, 16),
+    "input_ch": (1, 2, 4, 8, 16, 32),
     "output_ch": (1,),
     "kernel_size": ((3,3),),
     "iq": (4,),
@@ -59,17 +60,18 @@ conv_layer_var_input_ch_exp = {
 }
 
 maxpool_layer_var_input_size = {
+    "channels": (3,),
     "input_size": ((4,4), (8,8), (12,12), (16,16)),
     "kernel_size": ((3, 3),),
     "iq": (4,)
 }
 
 experiments = (
-    #(linear_layer_var_in_features_exp, get_linear_layer_model, "linear_layer_var_in_features"),
-    #(linear_layer_var_iq_exp, get_linear_layer_model, "linear_layer_var_iq"),
-    #(linear_layer_var_wq_exp, get_linear_layer_model, "linear_layer_var_wq"),
-    (conv_layer_var_input_ch_exp, get_conv_layer_model, "conv_layer_var_input_ch"),
-    #(maxpool_layer_var_input_size, get_maxpool_layer_model, "maxpool_layer_var_input_size"),
+    #(linear_layer_var_in_features_exp, get_linear_layer_model, "linear_layer_var_in_features", "NeuronProcessingUnit"),
+    #(linear_layer_var_iq_exp, get_linear_layer_model, "linear_layer_var_iq", "NeuronProcessingUnit"),
+    #(linear_layer_var_wq_exp, get_linear_layer_model, "linear_layer_var_wq", "NeuronProcessingUnit"),
+    #(conv_layer_var_input_ch_exp, get_conv_layer_model, "conv_layer_var_input_ch", "NeuronProcessingUnit"),
+    (maxpool_layer_var_input_size, get_maxpool_layer_model, "maxpool_layer_var_input_size", "OrderProcessingUnit"),
 )
 current_exp = 0
 
@@ -94,9 +96,10 @@ def run_test(*args):
     exp_dict = experiments[current_exp][0]
     model_gen = experiments[current_exp][1]
     exp_name = experiments[current_exp][2]
+    top_name = experiments[current_exp][3]
     work_dir = get_work_dir(exp_dict.keys(), args[0], base=f"/circuits/{exp_name}/")
     brevitas_model, data = model_gen(*args[0])
-    return test_model(brevitas_model, data, work_dir, SCRIPT_DIR)
+    return test_model(brevitas_model, data, work_dir, SCRIPT_DIR, top_name)
     
 
 if __name__ == "__main__":
