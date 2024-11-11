@@ -3,3 +3,6 @@ __pycache__/
 circuits/
 venv/
 .Xil/
+results_*.json
+vivado.jou
+vivado.log
