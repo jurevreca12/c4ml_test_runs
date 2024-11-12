@@ -18,9 +18,23 @@ import json
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
+
+##############################
+## LINEAR LAYER EXPERIMENTS ##
+##############################
 linear_layer_var_in_features_exp = {
     "in_features": (16, 32, 64, 128, 256),
     "out_features": (32,),
+    "bias":  (True,),
+    "iq": (4,),
+    "wq": (4,),
+    "bq": (8,),
+    "oq": (4,)
+}
+
+linear_layer_var_out_features_exp = {
+    "in_features": (16,),
+    "out_features": (16, 32, 64, 128, 256),
     "bias":  (True,),
     "iq": (4,),
     "wq": (4,),
@@ -48,9 +62,13 @@ linear_layer_var_wq_exp = {
     "oq": (4,)
 }
 
+
+##############################
+## CONV LAYER EXPERIMENTS   ##
+##############################
 conv_layer_var_input_ch_exp = {
     "input_size": ((16, 16),),
-    "input_ch": (1, 2, 4, 8, 16, 32),
+    "input_ch": (1, 2, 4, 8, 16),
     "output_ch": (1,),
     "kernel_size": ((3,3),),
     "iq": (4,),
@@ -59,6 +77,55 @@ conv_layer_var_input_ch_exp = {
     "oq": (4,)
 }
 
+conv_layer_var_output_ch_exp = {
+    "input_size": ((16, 16),),
+    "input_ch": (1,),
+    "output_ch": (1, 2, 4, 8, 16),
+    "kernel_size": ((3,3),),
+    "iq": (4,),
+    "wq": (4,),
+    "bq": (8,),
+    "oq": (4,)
+}
+
+dw_conv_layer_var_output_ch_exp = {
+    "input_size": ((16, 16),),
+    "input_ch": (1,),
+    "output_ch": (1, 2, 4, 8, 16),
+    "kernel_size": ((3,3),),
+    "iq": (4,),
+    "wq": (4,),
+    "bq": (8,),
+    "oq": (4,),
+    "depthwise": (True,)
+}
+
+conv_layer_var_iq_exp = {
+    "input_size": ((16, 16),),
+    "input_ch": (1,),
+    "output_ch": (1,),
+    "kernel_size": ((3,3),),
+    "iq": (2,3,4,5,6,7),
+    "wq": (4,),
+    "bq": (8,),
+    "oq": (4,)
+}
+
+conv_layer_var_wq_exp = {
+    "input_size": ((16, 16),),
+    "input_ch": (1,),
+    "output_ch": (1,),
+    "kernel_size": ((3,3),),
+    "iq": (4,),
+    "wq": (2,3,4,5,6,7),
+    "bq": (8,),
+    "oq": (4,)
+}
+
+
+##############################
+## MAXPOOL LAYER EXPERIMENTS #
+##############################
 maxpool_layer_var_input_size = {
     "channels": (3,),
     "input_size": ((4,4), (8,8), (12,12), (16,16)),
@@ -66,12 +133,35 @@ maxpool_layer_var_input_size = {
     "iq": (4,)
 }
 
+maxpool_layer_var_channels = {
+    "channels": (1, 2, 4, 8, 16),
+    "input_size": ((8,8),),
+    "kernel_size": ((3, 3),),
+    "iq": (4,)
+}
+
+maxpool_layer_var_kernel_size = {
+    "channels": (3,),
+    "input_size": ((8,8),),
+    "kernel_size": ((2, 2), (3, 3), (4,4), (5,5)),
+    "iq": (4,)
+}
+
 experiments = (
-    #(linear_layer_var_in_features_exp, get_linear_layer_model, "linear_layer_var_in_features", "NeuronProcessingUnit"),
-    #(linear_layer_var_iq_exp, get_linear_layer_model, "linear_layer_var_iq", "NeuronProcessingUnit"),
-    #(linear_layer_var_wq_exp, get_linear_layer_model, "linear_layer_var_wq", "NeuronProcessingUnit"),
-    #(conv_layer_var_input_ch_exp, get_conv_layer_model, "conv_layer_var_input_ch", "NeuronProcessingUnit"),
-    (maxpool_layer_var_input_size, get_maxpool_layer_model, "maxpool_layer_var_input_size", "OrderProcessingUnit"),
+    (linear_layer_var_in_features_exp, get_linear_layer_model, "linear_layer_var_in_features", "NeuronProcessingUnit"), # 0
+    (linear_layer_var_out_features_exp, get_linear_layer_model, "linear_layer_var_out_features", "NeuronProcessingUnit"), # 1
+    (linear_layer_var_iq_exp, get_linear_layer_model, "linear_layer_var_iq", "NeuronProcessingUnit"), # 2
+    (linear_layer_var_wq_exp, get_linear_layer_model, "linear_layer_var_wq", "NeuronProcessingUnit"), # 3
+
+    (conv_layer_var_input_ch_exp, get_conv_layer_model, "conv_layer_var_input_ch", "NeuronProcessingUnit"), # 4
+    (conv_layer_var_output_ch_exp, get_conv_layer_model, "conv_layer_var_output_ch", "NeuronProcessingUnit"), # 5
+    (dw_conv_layer_var_output_ch_exp, get_conv_layer_model, "dw_conv_layer_var_output_ch", "NeuronProcessingUnit"), # 6
+    (conv_layer_var_iq_exp, get_conv_layer_model, "conv_layer_var_iq", "NeuronProcessingUnit"), # 7
+    (conv_layer_var_wq_exp, get_conv_layer_model, "conv_layer_var_wq", "NeuronProcessingUnit"), # 8
+    
+    (maxpool_layer_var_input_size, get_maxpool_layer_model, "maxpool_layer_var_input_size", "OrderProcessingUnit"), # 9
+    (maxpool_layer_var_channels, get_maxpool_layer_model, "maxpool_layer_var_channels", "OrderProcessingUnit"), # 10
+    (maxpool_layer_var_kernel_size, get_maxpool_layer_model, "maxpool_layer_var_kernel_size", "OrderProcessingUnit"), # 11
 )
 current_exp = 0
 
@@ -111,10 +201,21 @@ if __name__ == "__main__":
         default=2,
         help='Number of parallel workers'
     )
+    parser.add_argument(
+        '--experiment_num',
+        '-exp',
+        type=int,
+        default=-1,
+        help='If set, run only the given experiment (else run all).'
+    )
     args = parser.parse_args()
+    if args.experiment_num >= 0:
+        experiments = (experiments[args.experiment_num], )
+
     create_server('chisel4ml/out/chisel4ml/assembly.dest/out.jar', args.num_workers)
     results = []
     for exp in experiments:
+        print(f"Running {exp[2]}")
         feat_list = list(itertools.product(*exp[0].values()))
         with ThreadPool(args.num_workers) as pool:
             exp_results = pool.map(run_test, feat_list)
@@ -124,3 +225,4 @@ if __name__ == "__main__":
         ser_res = json.dumps(results)
         with open(f'{SCRIPT_DIR}/results_exp_{exp[2]}.json', 'w') as f:
             f.write(ser_res)
+        print(f"Finnished {exp[2]}")

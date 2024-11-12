@@ -28,7 +28,7 @@ def get_free_port():
 def create_server(c4ml_jar, num_servers=1):
     global _server_list
     for num in range(num_servers):
-        tmp_dir = Path(tempfile.gettempdir(), f"chisel4ml{num}")
+        tmp_dir = Path(tempfile.TemporaryDirectory(prefix="chisel4ml").name)
         c4ml_jar = Path(c4ml_jar).resolve()
         free_port = get_free_port()
         assert c4ml_jar.exists()

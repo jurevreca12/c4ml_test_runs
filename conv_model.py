@@ -15,9 +15,12 @@ def get_conv_layer_model(
     class ConvLayerModel(Module):
         def __init__(self):
             super(ConvLayerModel, self).__init__()
-            self.ishape = (1, input_ch) + input_size
+            if depthwise:
+                self.ishape = (1, output_ch) + input_size
+            else:
+                self.ishape = (1, input_ch) + input_size
             self.conv = qnn.QuantConv2d(
-                in_channels=input_ch,
+                in_channels=output_ch if depthwise else input_ch,
                 out_channels=output_ch,
                 groups=output_ch if depthwise else 1,
                 kernel_size=kernel_size,

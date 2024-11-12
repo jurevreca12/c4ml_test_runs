@@ -1,8 +1,12 @@
 *.swp
 __pycache__/
 circuits/
+plots/
 venv/
 .Xil/
 results_*.json
 vivado.jou
 vivado.log
+.ipynb_checkpoints/
+*.ipynb
+python*.log
