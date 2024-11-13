@@ -10,3 +10,4 @@ vivado.log
 .ipynb_checkpoints/
 *.ipynb
 python*.log
+data/
