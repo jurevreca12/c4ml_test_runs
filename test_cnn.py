@@ -1,65 +1,87 @@
+import os
 from cnn_model import get_cnn_model
-import onnx
 from mnist_data import get_data_loaders
-from train import train_model, eval_model
+from train import train_model, eval_model, merge_batchnorm
 from chisel4ml import transform
-
+from test_model import test_chisel4ml, test_hls4ml
 import torch
-from  brevitas.nn.utils import merge_bn
+import onnx
+import multiprocessing
+from server import create_server
+from multiprocessing.pool import ThreadPool
+import argparse
 
-model = get_cnn_model(bitwidth = 4, use_bn=True)
-model_nobn = get_cnn_model(bitwidth = 4, use_bn=False)
-train_loader, test_loader = get_data_loaders(batch_size=256)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = model.to(device)
 
-train_model(
-    model=model,
-    train_loader=train_loader,
-    criterion=torch.nn.CrossEntropyLoss(),
-    optimizer=torch.optim.Adam(model.parameters(), lr=0.001),
-    epochs=1,
-    device=device
-)
-eval_model(model, test_loader, device)
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-model.eval()
-model_nobn.load_state_dict({k: v for k, v in model.state_dict().items() if 'bn' not in k})
+def train_quantized_mnist_model(bitwidth, work_dir):
+    model = get_cnn_model(bitwidth = bitwidth, use_bn=True)
+    model_nobn = get_cnn_model(bitwidth = bitwidth, use_bn=False)
+    train_loader, test_loader = get_data_loaders(batch_size=64)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    train_model(
+        model=model,
+        train_loader=train_loader,
+        criterion=torch.nn.CrossEntropyLoss(),
+        optimizer=torch.optim.Adam(model.parameters(), lr=0.001),
+        epochs=5,
+        device=device
+    )
+    print(f"ACCURACY WITH BN {bitwidth}:")
+    eval_model(model, test_loader, device)
 
-def merge_batchnorm(act, bn, ltype='conv'):
-	if ltype == "conv":
-		w_act = act.weight.clone().view(act.out_channels, -1)
-	else:
-		w_act = act.weight.clone()
-	w_bn = torch.diag(bn.weight.div(torch.sqrt(bn.eps+bn.running_var)))
-	new_w = torch.mm(w_bn, w_act).view(act.weight.size())
-	if act.bias is not None:
-		b_act = act.bias
-	else:
-		b_act = torch.zeros(act.weight.size(0))
-	new_b = bn.bias - bn.weight.mul(bn.running_mean).div(torch.sqrt(bn.running_var + bn.eps))
-	act.weight = torch.nn.Parameter(new_w)
-	act.bias = torch.nn.Parameter(new_b)
+    print("MERGING BATCHNORM TO ACTIVE LAYERS")
+    model.eval()
+    model_nobn.load_state_dict({k: v for k, v in model.state_dict().items() if 'bn' not in k})
+    for layer in (model.conv0, model.conv1):
+        merge_batchnorm(layer.conv, layer.bn)  
+    for layer in (model.dense0, model.dense1):
+        merge_batchnorm(layer.dense, layer.bn)  
+    model_nobn.load_state_dict({k: v for k, v in model.state_dict().items() if 'bn' not in k}, strict=False)
+    print('BN layers fused.')
+    print("RETRAINING FUSED MODEL")
+    train_model(
+        model=model_nobn,
+        train_loader=train_loader,
+        criterion=torch.nn.CrossEntropyLoss(),
+        optimizer=torch.optim.Adam(model_nobn.parameters(), lr=0.001),
+        epochs=5,
+        device=device
+    )
+    print(f"FINAL ACCURACY {bitwidth} (NO BN):")
+    final_acc = eval_model(model_nobn, test_loader, device)
+    if not os.path.exists(work_dir):
+        os.makedirs(work_dir)
+    with open(f"{work_dir}/acc.log", 'w') as f:
+        f.write(f"Final accuracy-{bitwidth}:\n")
+        f.write(f"{str(final_acc)}\n")
+    # return trained model and one batch of data for testing
+    torch_tensor = next(iter(test_loader))[0]
+    return model_nobn, torch_tensor.detach().numpy()
+lock = multiprocessing.Lock()
+def test_cnn(bitwidth):
+    global lock
+    work_dir = f'circuits/mnist/cnn{bitwidth}/'
+    brevitas_model, test_data = train_quantized_mnist_model(bitwidth, work_dir)
+    lock.acquire()
+    qonnx_model = transform.brevitas_to_qonnx(brevitas_model, brevitas_model.ishape)
+    lock.release()
+    os.makedirs(f"{work_dir}/qonnx")
+    onnx.save(qonnx_model.model, f"{work_dir}/qonnx/model.onnx")
+    test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml", base_dir=SCRIPT_DIR, top_name="ProcessingPipeline", argmax=True)
+    test_hls4ml(qonnx_model, work_dir=f"{work_dir}/hls4ml", base_dir=SCRIPT_DIR)
 
-for layer in (model.conv0, model.conv1):
-    merge_batchnorm(layer.conv, layer.bn)  
-for layer in (model.dense0, model.dense1):
-    merge_batchnorm(layer.dense, layer.bn)  
-model_nobn.load_state_dict({k: v for k, v in model.state_dict().items() if 'bn' not in k}, strict=False)
-print('layer fused ')
-eval_model(model_nobn, test_loader, device)
-train_model(
-    model=model_nobn,
-    train_loader=train_loader,
-    criterion=torch.nn.CrossEntropyLoss(),
-    optimizer=torch.optim.Adam(model_nobn.parameters(), lr=0.001),
-    epochs=1,
-    device=device
-)
-eval_model(model_nobn, test_loader, device)
-
-qonnx_model = transform.brevitas_to_qonnx(model, model.ishape)
-onnx.save(qonnx_model.model, 'test_cnn_model.onnx')
-
-import pdb; pdb.set_trace()
-
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="cnn_train")
+    parser.add_argument(
+        '--bitwidth',
+        '-bw',
+        type=int,
+        default=2,
+        help='The bitwidth of the parameters of the model.'
+    )
+    args = parser.parse_args()
+    print(f"Training CNN model with bitwdith: {args.bitwidth}")
+    create_server('chisel4ml/out/chisel4ml/assembly.dest/out.jar', 1)
+    test_cnn(args.bitwidth)

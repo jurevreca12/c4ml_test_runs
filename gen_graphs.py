@@ -53,14 +53,33 @@ def exp_get_elem_list(exp, tool='chisel4ml', elem='CLB LUTs*'):
         elem_list.append(float(run[tool]['util']['CLB Logic'][index]['Used']))
     return elem_list
 
+def exp_get_delay_list(exp, tool='chisel4ml', delay_type='Path Delay'):
+    elem_list =[]       
+    for run in exp:
+        val = run[tool]['design'][delay_type][0:5]
+        elem_list.append(float(val))
+    return elem_list
+
+
+key_to_name_dict = {
+    "input_ch" : "Input Channels",
+    "output_ch" : "Output Channels",
+    "iq" : "Input Bitwidth",
+    "wq" : "Weights Bitwidth",
+    "in_features" : "Input Features",
+    "out_features" : "Output Features",
+    "channels" : "Channels",
+    "input_size": "Input Size",
+    "kernel_size": "Kernel Size"
+}    
 
 def get_x_axis(exp_dict):
     for key in exp_dict.keys():
         if len(exp_dict[key]) > 1:
             if isinstance(exp_dict[key][0], (tuple, list)):
-                return list(map(lambda x: x[0], exp_dict[key])), key
+                return list(map(lambda x: x[0], exp_dict[key])), key_to_name_dict[key]
             else:
-                return exp_dict[key], key
+                return exp_dict[key], key_to_name_dict[key]
 
 if __name__ == "__main__":
     for exp in experiments:
@@ -74,19 +93,30 @@ if __name__ == "__main__":
         hls4ml_luts_list = exp_get_elem_list(data[0], tool='hls4ml', elem='CLB LUTs*')
         c4ml_ff_list = exp_get_elem_list(data[0], tool='chisel4ml', elem='CLB Registers')
         hls4ml_ff_list = exp_get_elem_list(data[0], tool='hls4ml', elem='CLB Registers')
+        c4ml_delay_list = exp_get_delay_list(data[0], tool='chisel4ml')
+        hls4ml_delay_list = exp_get_delay_list(data[0], tool='hls4ml')
 
         x_axis, x_axis_name = get_x_axis(exp[1])
         lut_arr = np.array([x_axis, c4ml_luts_list, hls4ml_luts_list])
         time_arr = np.array([x_axis,  c4ml_syn_time_list, hls4ml_syn_time_list])
-        lut_df = pd.DataFrame(lut_arr.T, columns=[x_axis_name, 'c4ml_lut', 'hls4ml_lut'])
-        time_df = pd.DataFrame(time_arr.T, columns=[x_axis_name, 'c4ml_syn_time', 'hls4ml_syn_time'])
+        delay_arr = np.array([x_axis, c4ml_delay_list, hls4ml_delay_list])
+        lut_df = pd.DataFrame(lut_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
+        time_df = pd.DataFrame(time_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
+        delay_df = pd.DataFrame(delay_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
         melt_lut_df = lut_df.melt(x_axis_name, var_name='tool', value_name='Look-Up Tables')
-        melt_time_df = time_df.melt(x_axis_name, var_name='tool', value_name='Synthesis Time')
+        melt_time_df = time_df.melt(x_axis_name, var_name='tool', value_name='Synthesis Time [s]')
+        melt_delay_df = delay_df.melt(x_axis_name, var_name='tool', value_name='Path Delay [ns]')
+
 
         sns.set_style("darkgrid", {"axes.facecolor": ".9"})
         if not os.path.isdir(f"plots/{exp[0]}"):
            os.makedirs(f"plots/{exp[0]}")
-        lut_plot = sns.catplot(x=x_axis_name, y="Look-Up Tables", hue='tool', data=melt_lut_df, kind='point', markers=['o', 's'])
+        lut_plot = sns.catplot(x=x_axis_name, y="Look-Up Tables", hue='tool', data=melt_lut_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
         plt.savefig(f'plots/{exp[0]}/lut_plot.png')
-        time_plot = sns.catplot(x=x_axis_name, y="Synthesis Time", hue='tool', data=melt_time_df, kind='point', markers=['o', 's'])
+        plt.close()
+        time_plot = sns.catplot(x=x_axis_name, y="Synthesis Time [s]", hue='tool', data=melt_time_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
         plt.savefig(f'plots/{exp[0]}/syn_time_plot.png')
+        plt.close()
+        delay_plot = sns.catplot(x=x_axis_name, y="Path Delay [ns]", hue='tool', data=melt_delay_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
+        plt.savefig(f'plots/{exp[0]}/delay_plot.png')
+        plt.close()

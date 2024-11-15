@@ -35,7 +35,8 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             self.quant = qnn.QuantIdentity(
                 bit_width=bitwidth, 
                 scaling_impl_type='const', 
-                scaling_init=2**(bitwidth - 1)
+                scaling_init=2**(bitwidth - 1),
+                signed=False  # ReLU
             )
 
         def forward(self, x):
@@ -79,7 +80,8 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             self.quant_inp = qnn.QuantIdentity(
                 bit_width=input_bitwidth, 
                 scaling_impl_type='const', 
-                scaling_init=2**(input_bitwidth - 1)
+                scaling_init=2**(input_bitwidth - 1),
+                signed=False
             )
             self.conv0 = ConvBlock(input_ch = 1, output_ch = 8)   # 1 * 28 * 28
             self.conv1 = ConvBlock(input_ch = 8, output_ch = 8)  # 8 * 13 * 13

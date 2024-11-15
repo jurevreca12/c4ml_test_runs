@@ -1,10 +1,16 @@
 import torch
 import torchvision
-import torchvision.transforms as transforms
+from torchvision.transforms import v2
 
+
+def convert_unit_nums(x):
+    return torch.round(x * 255).to(torch.float32)
 
 def get_data_loaders(batch_size=256): 
-    trans = transforms.Compose([transforms.ToTensor()])
+    trans = v2.Compose([
+        v2.ToTensor(),
+        v2.Lambda(convert_unit_nums)
+    ])
     train_set = torchvision.datasets.MNIST(
         root='./data', 
         train=True,
