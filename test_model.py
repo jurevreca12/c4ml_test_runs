@@ -19,7 +19,7 @@ from server import get_server, create_server
 from parse_reports import parse_reports
 
 
-def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir, top_name, argmax=False):
+def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir, top_name):
     starttime = time.perf_counter()
     accelerators, lbir_model = generate.accelerators(
         qonnx_model,
@@ -39,10 +39,7 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir, t
             brevitas_model.forward(torch.from_numpy(np.expand_dims(x, axis=0))).detach().numpy()
         )
         hw_res = circuit(x)
-        if argmax:
-            assert 1 == 1 #np.argmax(sw_res.flatten()) == np.argmax(hw_res.flatten())
-        else:
-            assert np.array_equal(sw_res.flatten(), hw_res.flatten())
+        assert np.array_equal(sw_res.flatten(), hw_res.flatten())
     circuit.package(work_dir)
     commands = [
         "vivado", 

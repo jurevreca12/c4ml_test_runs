@@ -59,6 +59,7 @@ def train_quantized_mnist_model(bitwidth, work_dir):
     # return trained model and one batch of data for testing
     torch_tensor = next(iter(test_loader))[0]
     return model_nobn, torch_tensor.detach().numpy()
+
 lock = multiprocessing.Lock()
 def test_cnn(bitwidth):
     global lock
@@ -69,7 +70,7 @@ def test_cnn(bitwidth):
     lock.release()
     os.makedirs(f"{work_dir}/qonnx")
     onnx.save(qonnx_model.model, f"{work_dir}/qonnx/model.onnx")
-    test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml", base_dir=SCRIPT_DIR, top_name="ProcessingPipeline", argmax=True)
+    test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml", base_dir=SCRIPT_DIR, top_name="ProcessingPipeline")
     test_hls4ml(qonnx_model, work_dir=f"{work_dir}/hls4ml", base_dir=SCRIPT_DIR)
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import torch
 from torch.nn import Module
 from qonnx.core.datatype import DataType
 from qonnx.util.basic import gen_finn_dt_tensor
-from quantizers import WeightPerChannelQuant
+from quantizers import WeightPerTensorQuant
 from quantizers import IntBiasQuant
 from quantizers import IntActQuant
 
@@ -21,7 +21,7 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
                 kernel_size=conv_kernel_size,
                 stride=1,
                 bias=True,
-                weight_quant=WeightPerChannelQuant,
+                weight_quant=WeightPerTensorQuant,
                 weight_bit_width=bitwidth,
                 bias_quant=IntBiasQuant,
                 bias_bit_width=bias_bitwidth,
@@ -35,7 +35,7 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             self.quant = qnn.QuantIdentity(
                 bit_width=bitwidth, 
                 scaling_impl_type='const', 
-                scaling_init=2**(bitwidth - 1),
+                scaling_init=2**(bitwidth) - 1,
                 signed=False  # ReLU
             )
 
@@ -55,7 +55,7 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
                 in_features = in_features,
                 out_features = out_features,
                 bias=True,
-                weight_quant=WeightPerChannelQuant,
+                weight_quant=WeightPerTensorQuant,
                 weight_bit_width=bitwidth,
                 bias_quant=IntBiasQuant,
                 bias_bit_width=bias_bitwidth,
@@ -80,7 +80,7 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             self.quant_inp = qnn.QuantIdentity(
                 bit_width=input_bitwidth, 
                 scaling_impl_type='const', 
-                scaling_init=2**(input_bitwidth - 1),
+                scaling_init=2**(input_bitwidth) -1,
                 signed=False
             )
             self.conv0 = ConvBlock(input_ch = 1, output_ch = 8)   # 1 * 28 * 28

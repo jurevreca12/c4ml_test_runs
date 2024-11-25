@@ -37,7 +37,7 @@ experiments = [
 def exp_get_time_list(exp, tool='chisel4ml'):
     time_list = []
     for run in exp:
-        time_list.append(float(run[tool]['syn_time']))
+        time_list.append(float(run[tool]['syn_time']) / (60 * 60))
     return time_list
 
 
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         time_df = pd.DataFrame(time_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
         delay_df = pd.DataFrame(delay_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
         melt_lut_df = lut_df.melt(x_axis_name, var_name='tool', value_name='Look-Up Tables')
-        melt_time_df = time_df.melt(x_axis_name, var_name='tool', value_name='Synthesis Time [s]')
+        melt_time_df = time_df.melt(x_axis_name, var_name='tool', value_name='Synthesis Time [hours]')
         melt_delay_df = delay_df.melt(x_axis_name, var_name='tool', value_name='Path Delay [ns]')
 
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         lut_plot = sns.catplot(x=x_axis_name, y="Look-Up Tables", hue='tool', data=melt_lut_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
         plt.savefig(f'plots/{exp[0]}/lut_plot.png')
         plt.close()
-        time_plot = sns.catplot(x=x_axis_name, y="Synthesis Time [s]", hue='tool', data=melt_time_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
+        time_plot = sns.catplot(x=x_axis_name, y="Synthesis Time [hours]", hue='tool', data=melt_time_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
         plt.savefig(f'plots/{exp[0]}/syn_time_plot.png')
         plt.close()
         delay_plot = sns.catplot(x=x_axis_name, y="Path Delay [ns]", hue='tool', data=melt_delay_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
