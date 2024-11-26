@@ -10,7 +10,8 @@ import multiprocessing
 from server import create_server
 from multiprocessing.pool import ThreadPool
 import argparse
-
+import json
+from parse_reports import parse_reports
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -71,7 +72,10 @@ def test_cnn(bitwidth):
     os.makedirs(f"{work_dir}/qonnx")
     onnx.save(qonnx_model.model, f"{work_dir}/qonnx/model.onnx")
     test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml", base_dir=SCRIPT_DIR, top_name="ProcessingPipeline")
+    c4ml_res = parse_reports(f"{work_dir}/c4ml/")
     test_hls4ml(qonnx_model, work_dir=f"{work_dir}/hls4ml", base_dir=SCRIPT_DIR)
+    hls4ml_res = parse_reports(f"{work_dir}/hls4ml/")
+    return {'work_dir': work_dir, 'chisel4ml': c4ml_res, 'hls4ml': hls4ml_res}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="cnn_train")
@@ -85,4 +89,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(f"Training CNN model with bitwdith: {args.bitwidth}")
     create_server('chisel4ml/out/chisel4ml/assembly.dest/out.jar', 1)
-    test_cnn(args.bitwidth)
+    result = test_cnn(args.bitwidth)
+    ser_res = json.dumps(results)
+    with open(f'{SCRIPT_DIR}/results_mnist_bw{args.bitwidth}.json', 'w') as f:
+        f.write(ser_res)
