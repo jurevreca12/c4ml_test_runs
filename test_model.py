@@ -64,10 +64,13 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
     qonnx_model = qonnx.util.cleanup.cleanup_model(qonnx_model)
     hls_config = hls4ml.utils.config_from_onnx_model(
         qonnx_model,
+        granularity='name',
         backend="Vitis",
         default_reuse_factor=1,
     )
     hls_config['Model']['ReuseFactor'] = 1
+    hls_config['Model']['Strategy'] = 'Unrolled'
+    hls_config['LayerName']['Conv_0']['ParallelizationFactor'] = 9999999
     hls_model = hls4ml.converters.convert_from_onnx_model(
         qonnx_model,
         output_dir=work_dir,
@@ -77,7 +80,7 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
         part='xcvu9p-flga2104-2L-e'
     )
     hls_model.compile()
-    hls_model.build(csim=False, vsynth=False)
+    hls_model.build(csim=False)
     commands = [
         "vivado",
         "-mode", "batch",

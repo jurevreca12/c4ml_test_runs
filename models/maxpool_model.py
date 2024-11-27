@@ -37,4 +37,4 @@ def get_maxpool_layer_model(channels, input_size, kernel_size, iq):
     iq_type = DataType[f"INT{iq}"] if iq > 1 else DataType["BIPOLAR"]
     ishape = (8,) + model.ishape[1:]
     input_data = gen_finn_dt_tensor(iq_type, ishape)
-    return model, input_data
+    return model, input_data, None

@@ -52,4 +52,4 @@ def get_linear_layer_model(in_features, out_features, bias, iq, wq, bq, oq):
     model.linear.bias = torch.nn.Parameter(torch.from_numpy(bias).float())
     ishape = (32,) + model.ishape[1:]
     input_data = gen_finn_dt_tensor(iq_type, ishape)
-    return model, input_data
+    return model, input_data, None

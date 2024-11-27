@@ -101,25 +101,25 @@ conv_layer_var_wq_exp = {
 ##############################
 #  MAXPOOL LAYER EXPERIMENTS #
 ##############################
-maxpool_layer_var_input_size = {
+maxpool_layer_var_input_size_exp = {
     "channels": (3,),
     "input_size": ((4, 4), (8, 8), (12, 12), (16, 16)),
     "kernel_size": ((3, 3),),
     "iq": (4,)
 }
-maxpool_layer_var_channels = {
+maxpool_layer_var_channels_exp = {
     "channels": (1, 2, 4, 8, 16),
     "input_size": ((8, 8),),
     "kernel_size": ((3, 3),),
     "iq": (4,)
 }
-maxpool_layer_var_kernel_size = {
+maxpool_layer_var_kernel_size_exp = {
     "channels": (3,),
     "input_size": ((8, 8),),
     "kernel_size": ((2, 2), (3, 3), (4, 4), (5, 5)),
     "iq": (4,)
 }
-maxpool_layer_var_iq = {
+maxpool_layer_var_iq_exp = {
     "channels": (3,),
     "input_size": ((8, 8),),
     "kernel_size": ((2, 2),),
@@ -129,27 +129,27 @@ maxpool_layer_var_iq = {
 ##############################
 #  CNN MODEL EXPERIMENTS     #
 ##############################
-cnn_mnist_model_var_bitwidth = {
+cnn_mnist_model_var_bitwidth_exp = {
     "bitwidth": (2, 3, 4, 5, 6, 7),
 }
 
 EXPERIMENTS = (
-    (linear_layer_var_in_features_exp, get_linear_layer_model, "linear_layer_var_in_features", "NeuronProcessingUnit"),  # 0
-    (linear_layer_var_out_features_exp, get_linear_layer_model, "linear_layer_var_out_features", "NeuronProcessingUnit"),  # 1
-    (linear_layer_var_iq_exp, get_linear_layer_model, "linear_layer_var_iq", "NeuronProcessingUnit"),  # 2
-    (linear_layer_var_wq_exp, get_linear_layer_model, "linear_layer_var_wq", "NeuronProcessingUnit"),  # 3
+    (linear_layer_var_in_features_exp, get_linear_layer_model, "linear_layer_var_in_features_exp", "NeuronProcessingUnit"),  # 0
+    (linear_layer_var_out_features_exp, get_linear_layer_model, "linear_layer_var_out_features_exp", "NeuronProcessingUnit"),  # 1
+    (linear_layer_var_iq_exp, get_linear_layer_model, "linear_layer_var_iq_exp", "NeuronProcessingUnit"),  # 2
+    (linear_layer_var_wq_exp, get_linear_layer_model, "linear_layer_var_wq_exp", "NeuronProcessingUnit"),  # 3
 
-    (conv_layer_var_input_ch_exp, get_conv_layer_model, "conv_layer_var_input_ch", "NeuronProcessingUnit"),  # 4
-    (conv_layer_var_output_ch_exp, get_conv_layer_model, "conv_layer_var_output_ch", "NeuronProcessingUnit"),  # 5
-    (conv_layer_var_iq_exp, get_conv_layer_model, "conv_layer_var_iq", "NeuronProcessingUnit"),  # 6
-    (conv_layer_var_wq_exp, get_conv_layer_model, "conv_layer_var_wq", "NeuronProcessingUnit"),  # 7
+    (conv_layer_var_input_ch_exp, get_conv_layer_model, "conv_layer_var_input_ch_exp", "NeuronProcessingUnit"),  # 4
+    (conv_layer_var_output_ch_exp, get_conv_layer_model, "conv_layer_var_output_ch_exp", "NeuronProcessingUnit"),  # 5
+    (conv_layer_var_iq_exp, get_conv_layer_model, "conv_layer_var_iq_exp", "NeuronProcessingUnit"),  # 6
+    (conv_layer_var_wq_exp, get_conv_layer_model, "conv_layer_var_wq_exp", "NeuronProcessingUnit"),  # 7
 
-    (maxpool_layer_var_input_size, get_maxpool_layer_model, "maxpool_layer_var_input_size", "OrderProcessingUnit"),  # 8
-    (maxpool_layer_var_channels, get_maxpool_layer_model, "maxpool_layer_var_channels", "OrderProcessingUnit"),  # 9
-    (maxpool_layer_var_kernel_size, get_maxpool_layer_model, "maxpool_layer_var_kernel_size", "OrderProcessingUnit"),  # 10
-    (maxpool_layer_var_iq, get_maxpool_layer_model, "maxpool_layer_var_iq", "OrderProcessingUnit"),  # 11
+    (maxpool_layer_var_input_size_exp, get_maxpool_layer_model, "maxpool_layer_var_input_size_exp", "OrderProcessingUnit"),  # 8
+    (maxpool_layer_var_channels_exp, get_maxpool_layer_model, "maxpool_layer_var_channels_exp", "OrderProcessingUnit"),  # 9
+    (maxpool_layer_var_kernel_size_exp, get_maxpool_layer_model, "maxpool_layer_var_kernel_size_exp", "OrderProcessingUnit"),  # 10
+    (maxpool_layer_var_iq_exp, get_maxpool_layer_model, "maxpool_layer_var_iq_exp", "OrderProcessingUnit"),  # 11
 
-    (cnn_mnist_model_var_bitwidth, train_quantized_mnist_model, "cnn_mnist_model_var_bitwidth", "ProcessingPipeline")  # 12
+    (cnn_mnist_model_var_bitwidth_exp, train_quantized_mnist_model, "cnn_mnist_model_var_bitwidth_exp", "ProcessingPipeline")  # 12
 )
 current_exp = 0
 
@@ -223,6 +223,8 @@ if __name__ == "__main__":
     if args.experiment_num >= 0:
         EXPERIMENTS = (EXPERIMENTS[args.experiment_num],)
 
+    if not os.path.exists(f'{SCRIPT_DIR}/results'):
+        os.makedirs(f'{SCRIPT_DIR}/results')
     results = []
     for exp in EXPERIMENTS:
         print(f"Running {exp[2]}")

@@ -60,4 +60,4 @@ def get_conv_layer_model(
     model.conv.bias = torch.nn.Parameter(torch.from_numpy(bias).float())
     ishape = (32,) + model.ishape[1:]
     input_data = gen_finn_dt_tensor(iq_type, ishape)
-    return model, input_data
+    return model, input_data, None

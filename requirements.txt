@@ -3,3 +3,4 @@ hls4ml/
 vivado-report-parser
 pandas
 torchvision
+seaborn
