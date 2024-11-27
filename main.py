@@ -131,6 +131,12 @@ maxpool_layer_var_iq_exp = {
 ##############################
 cnn_mnist_model_var_bitwidth_exp = {
     "bitwidth": (2, 3, 4, 5, 6, 7),
+    "prune_rate": (0.5,)
+}
+
+cnn_mnist_model_var_prune_rate_exp = {
+    "bitwidth": (4,),
+    "prune_rate": (0.5, 0.8, 0.85, 0.9, 0.95)
 }
 
 EXPERIMENTS = (
@@ -149,7 +155,8 @@ EXPERIMENTS = (
     (maxpool_layer_var_kernel_size_exp, get_maxpool_layer_model, "maxpool_layer_var_kernel_size_exp", "OrderProcessingUnit"),  # 10
     (maxpool_layer_var_iq_exp, get_maxpool_layer_model, "maxpool_layer_var_iq_exp", "OrderProcessingUnit"),  # 11
 
-    (cnn_mnist_model_var_bitwidth_exp, train_quantized_mnist_model, "cnn_mnist_model_var_bitwidth_exp", "ProcessingPipeline")  # 12
+    (cnn_mnist_model_var_bitwidth_exp, train_quantized_mnist_model, "cnn_mnist_model_var_bitwidth_exp", "ProcessingPipeline"),  # 12
+    (cnn_mnist_model_var_prune_rate_exp, train_quantized_mnist_model, "cnn_mnist_model_var_prune_rate_exp", "ProcessingPipeline")  # 13
 )
 current_exp = 0
 

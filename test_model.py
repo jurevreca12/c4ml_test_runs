@@ -70,7 +70,10 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
     )
     hls_config['Model']['ReuseFactor'] = 1
     hls_config['Model']['Strategy'] = 'Unrolled'
-    hls_config['LayerName']['Conv_0']['ParallelizationFactor'] = 9999999
+    for key in hls_config['LayerName'].keys():
+        if "conv" in key.lower():
+            hls_config['LayerName'][key]['ParallelizationFactor'] = 9999999
+            print(f"Setting maximum parallelization in layer {key}.")
     hls_model = hls4ml.converters.convert_from_onnx_model(
         qonnx_model,
         output_dir=work_dir,

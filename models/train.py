@@ -1,9 +1,72 @@
 import torch
+from torch.nn.utils import prune
+import brevitas.nn as qnn
 from models.cnn_model import get_cnn_model
 from models.mnist_data import get_data_loaders
 
 
-def train_model(model, train_loader, criterion, optimizer, epochs, device):
+def print_sparsity_by_layer(model):
+	print(
+		"Sparsity in conv0.conv.weight: {:.2f}%".format(
+			100. * float(torch.sum(model.conv0.conv.weight == 0))
+			/ float(model.conv0.conv.weight.nelement())
+		)
+	)
+	print(
+		"Sparsity in conv1.conv.weight: {:.2f}%".format(
+			100. * float(torch.sum(model.conv1.conv.weight == 0))
+			/ float(model.conv1.conv.weight.nelement())
+		)
+	)
+	print(
+		"Sparsity in dense0.dense.weight: {:.2f}%".format(
+			100. * float(torch.sum(model.dense0.dense.weight == 0))
+			/ float(model.dense0.dense.weight.nelement())
+		)
+	)
+	print(
+		"Sparsity in dense1.dense.weight: {:.2f}%".format(
+			100. * float(torch.sum(model.dense1.dense.weight == 0))
+			/ float(model.dense1.dense.weight.nelement())
+		)
+	)
+	print(
+		"Global sparsity: {:.2f}%".format(
+			100. * float(
+				torch.sum(model.conv0.conv.weight == 0)
+				+ torch.sum(model.conv1.conv.weight == 0)
+				+ torch.sum(model.dense0.dense.weight == 0)
+				+ torch.sum(model.dense1.dense.weight == 0)
+			)
+			/ float(
+				model.conv0.conv.weight.nelement()
+				+ model.conv1.conv.weight.nelement()
+				+ model.dense0.dense.weight.nelement()
+				+ model.dense1.dense.weight.nelement()
+			)
+		)
+	)
+
+
+def prune_model_global_unstructured(model, prune_rate, print_sparsity=False):
+    parameters_to_prune = (
+        (model.conv0.conv, 'weight'),
+        (model.conv1.conv, 'weight'),
+        (model.dense0.dense, 'weight'),
+        (model.dense1.dense, 'weight'),
+    )
+    prune.global_unstructured(
+        parameters_to_prune, 
+        pruning_method=prune.L1Unstructured,
+        amount=prune_rate
+    )
+
+    # Remove prunning re-parameterization
+    for module, _ in parameters_to_prune:
+        prune.remove(module, 'weight')
+
+
+def train_model(model, train_loader, criterion, optimizer, epochs, device, prune_rate):
     for epoch in range(epochs):  # loop over the dataset multiple times
         running_loss = 0.0
         for i, data in enumerate(train_loader):
@@ -12,7 +75,7 @@ def train_model(model, train_loader, criterion, optimizer, epochs, device):
             inputs = inputs.to(device)
             inputs = inputs * 255
             labels = labels.to(device)
-
+            
             # zero the parameter gradients
             optimizer.zero_grad()
 
@@ -22,6 +85,8 @@ def train_model(model, train_loader, criterion, optimizer, epochs, device):
             loss.backward()
 
             optimizer.step()
+            
+            prune_model_global_unstructured(model, prune_rate)
 
             # print statistics
             running_loss += loss.item()
@@ -69,7 +134,7 @@ def merge_batchnorm(act, bn, ltype='conv'):
     act.bias = torch.nn.Parameter(new_b)
 
 
-def train_quantized_mnist_model(bitwidth):
+def train_quantized_mnist_model(bitwidth, prune_rate=0.0):
     model = get_cnn_model(bitwidth=bitwidth, use_bn=True)
     model_nobn = get_cnn_model(bitwidth=bitwidth, use_bn=False)
     train_loader, test_loader = get_data_loaders(batch_size=64)
@@ -81,11 +146,13 @@ def train_quantized_mnist_model(bitwidth):
         criterion=torch.nn.CrossEntropyLoss(),
         optimizer=torch.optim.Adam(model.parameters(), lr=0.001),
         epochs=5,
-        device=device
+        device=device,
+        prune_rate=prune_rate
     )
+    print_sparsity_by_layer(model)
+
     print(f"ACCURACY WITH BN {bitwidth}:")
     eval_model(model, test_loader, device)
-
     print("MERGING BATCHNORM TO ACTIVE LAYERS")
     model.eval()
     model_nobn.load_state_dict({k: v for k, v in model.state_dict().items() if 'bn' not in k})
@@ -102,8 +169,10 @@ def train_quantized_mnist_model(bitwidth):
         criterion=torch.nn.CrossEntropyLoss(),
         optimizer=torch.optim.Adam(model_nobn.parameters(), lr=0.001),
         epochs=5,
-        device=device
+        device=device,
+        prune_rate=prune_rate
     )
+    print_sparsity_by_layer(model)
     print(f"FINAL ACCURACY {bitwidth} (NO BN):")
     final_acc = eval_model(model_nobn, test_loader, device)
     # return trained model and one batch of data for testing
