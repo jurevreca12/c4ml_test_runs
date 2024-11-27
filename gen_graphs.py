@@ -3,6 +3,7 @@ import json
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from  matplotlib.ticker import FuncFormatter
 import numpy as np
 from main import linear_layer_var_in_features_exp
 from main import linear_layer_var_out_features_exp
@@ -106,9 +107,13 @@ def generate_report_for_exp(exp):
     lut_arr = np.array([x_axis, c4ml_luts_list, hls4ml_luts_list])
     time_arr = np.array([x_axis, c4ml_syn_time_list, hls4ml_syn_time_list])
     delay_arr = np.array([x_axis, c4ml_delay_list, hls4ml_delay_list])
+
     lut_df = pd.DataFrame(lut_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
+    lut_df[x_axis_name] = lut_df[x_axis_name].apply(lambda x: int(x))
     time_df = pd.DataFrame(time_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
+    time_df[x_axis_name] = time_df[x_axis_name].apply(lambda x: int(x))
     delay_df = pd.DataFrame(delay_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
+    delay_df[x_axis_name] = delay_df[x_axis_name].apply(lambda x: int(x))
     melt_lut_df = lut_df.melt(x_axis_name, var_name='tool', value_name='Look-Up Tables')
     melt_time_df = time_df.melt(x_axis_name, var_name='tool', value_name='Synthesis Time [hours]')
     melt_delay_df = delay_df.melt(x_axis_name, var_name='tool', value_name='Path Delay [ns]')
@@ -116,13 +121,42 @@ def generate_report_for_exp(exp):
     sns.set_style("darkgrid", {"axes.facecolor": ".9"})
     if not os.path.isdir(f"plots/{exp[0]}"):
         os.makedirs(f"plots/{exp[0]}")
-    lut_plot = sns.catplot(x=x_axis_name, y="Look-Up Tables", hue='tool', data=melt_lut_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
+    sns.catplot(
+        x=x_axis_name,
+        y="Look-Up Tables",
+        hue='tool',
+        data=melt_lut_df,
+        kind='point',
+        markers=['o', 's'],
+        legend_out=False,
+        legend='brief'
+    )
+    
     plt.savefig(f'plots/{exp[0]}/lut_plot.png')
     plt.close()
-    time_plot = sns.catplot(x=x_axis_name, y="Synthesis Time [hours]", hue='tool', data=melt_time_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
+    sns.catplot(
+        x=x_axis_name,
+        y="Synthesis Time [hours]",
+        hue='tool',
+        data=melt_time_df,
+        kind='point',
+        markers=['o', 's'],
+        legend_out=False,
+        legend='brief'
+    )
     plt.savefig(f'plots/{exp[0]}/syn_time_plot.png')
     plt.close()
-    delay_plot = sns.catplot(x=x_axis_name, y="Path Delay [ns]", hue='tool', data=melt_delay_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
+    sns.catplot(
+        x=x_axis_name,
+        y="Path Delay [ns]",
+        hue='tool',
+        data=melt_delay_df,
+        kind='point',
+        markers=['o', 's'],
+        legend_out=False,
+        legend='brief'
+    )
+    plt.ylim(0)
     plt.savefig(f'plots/{exp[0]}/delay_plot.png')
     plt.close()
 
