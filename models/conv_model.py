@@ -1,13 +1,13 @@
-import brevitas
 import brevitas.nn as qnn
 import numpy as np
 import torch
 from torch.nn import Module
 from qonnx.core.datatype import DataType
 from qonnx.util.basic import gen_finn_dt_tensor
-from quantizers import CommonWeightQuant
-from quantizers import IntBiasQuant
-from quantizers import IntActQuant
+from models.quantizers import CommonWeightQuant
+from models.quantizers import IntBiasQuant
+from models.quantizers import IntActQuant
+
 
 def get_conv_layer_model(
     input_size, input_ch, output_ch, kernel_size, iq, wq, bq, oq, depthwise=False

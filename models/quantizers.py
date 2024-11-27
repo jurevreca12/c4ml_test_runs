@@ -35,6 +35,7 @@ class CommonQuant(ExtendedInjector):
 class CommonWeightQuant(CommonQuant, WeightQuantSolver):
     scaling_const = 1.0
 
+
 class WeightPerChannelQuant(WeightQuantSolver):
     quant_type = QuantType.INT  # integer quantization
     bit_width_impl_type = BitWidthImplType.CONST  # constant bit width
@@ -101,4 +102,3 @@ class IntActQuant(ActQuantSolver):
             return QuantType.BINARY
         else:
             return QuantType.INT
-

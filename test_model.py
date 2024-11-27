@@ -1,9 +1,7 @@
 import os
 import time
-import itertools
 import multiprocessing
 import torch
-import brevitas
 import onnx
 import qonnx
 from qonnx.transformation.channels_last import ConvertToChannelsLastAndClean
@@ -11,11 +9,9 @@ from qonnx.transformation.gemm_to_matmul import GemmToMatMul
 import numpy as np
 import subprocess
 import hls4ml
-import chisel4ml
 from chisel4ml import transform
 from chisel4ml import generate
-from linear_model import get_linear_layer_model
-from server import get_server, create_server
+from server import create_server
 from parse_reports import parse_reports
 
 
@@ -25,14 +21,14 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir, t
         qonnx_model,
         ishape=brevitas_model.ishape,
         minimize="delay",
-        debug=True
     )
+    c4ml_server, c4ml_subp = create_server(f'{base_dir}/chisel4ml/out/chisel4ml/assembly.dest/out.jar')
     circuit = generate.circuit(
         accelerators,
         lbir_model,
         use_verilator=True,
         gen_timeout_sec=1600,
-        server=get_server()
+        server=c4ml_server
     )
     for x in test_data:
         sw_res = (
@@ -41,10 +37,12 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir, t
         hw_res = circuit(x)
         assert np.array_equal(sw_res.flatten(), hw_res.flatten())
     circuit.package(work_dir)
+    c4ml_server.stop()
+    c4ml_subp.terminate()
     commands = [
-        "vivado", 
-        "-mode", "batch", 
-        "-source", f"{base_dir}/synth.tcl", 
+        "vivado",
+        "-mode", "batch",
+        "-source", f"{base_dir}/synth.tcl",
         "-nojournal",
         "-nolog",
         "-tclargs", work_dir, base_dir, top_name
@@ -54,7 +52,7 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir, t
     assert cp.returncode == 0
     duration = time.perf_counter() - starttime
     with open(f"{work_dir}/time.log", 'w') as time_file:
-        time_file.write(f"CHISEL4ML SYNTHESIS TIME:\n")
+        time_file.write("CHISEL4ML SYNTHESIS TIME:\n")
         time_file.write(f"{str(duration)}\n")
 
 
@@ -81,9 +79,9 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
     hls_model.compile()
     hls_model.build(csim=False, vsynth=False)
     commands = [
-        "vivado", 
-        "-mode", "batch", 
-        "-source", f"{base_dir}/synth_hls.tcl", 
+        "vivado",
+        "-mode", "batch",
+        "-source", f"{base_dir}/synth_hls.tcl",
         "-nojournal",
         "-nolog",
         "-tclargs", work_dir, base_dir
@@ -93,8 +91,9 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
     assert cp.returncode == 0
     duration = time.perf_counter() - starttime
     with open(f"{work_dir}/time.log", 'w') as time_file:
-        time_file.write(f"HLS4ML SYNTHESIS TIME:\n")
+        time_file.write("HLS4ML SYNTHESIS TIME:\n")
         time_file.write(f"{str(duration)}\n")
+
 
 lock = multiprocessing.Lock()
 def test_model(brevitas_model, test_data, work_dir, base_dir, top_name):

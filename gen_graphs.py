@@ -10,29 +10,30 @@ from main import linear_layer_var_iq_exp
 from main import linear_layer_var_wq_exp
 from main import conv_layer_var_input_ch_exp
 from main import conv_layer_var_output_ch_exp
-from main import dw_conv_layer_var_output_ch_exp
 from main import conv_layer_var_iq_exp
 from main import conv_layer_var_wq_exp
 from main import maxpool_layer_var_input_size
 from main import maxpool_layer_var_channels
 from main import maxpool_layer_var_kernel_size
+from main import maxpool_layer_var_iq
 
 experiments = [
-    ("linear_layer_var_in_features", linear_layer_var_in_features_exp), 
+    ("linear_layer_var_in_features", linear_layer_var_in_features_exp),
     ("linear_layer_var_out_features", linear_layer_var_out_features_exp),
     ("linear_layer_var_iq", linear_layer_var_iq_exp),
     ("linear_layer_var_wq", linear_layer_var_wq_exp),
 
     ("conv_layer_var_input_ch", conv_layer_var_input_ch_exp),
     ("conv_layer_var_output_ch", conv_layer_var_output_ch_exp),
-    #("dw_conv_layer_var_output_ch", dw_conv_layer_var_output_ch_exp),
     ("conv_layer_var_iq", conv_layer_var_iq_exp),
     ("conv_layer_var_wq", conv_layer_var_wq_exp),
 
     ("maxpool_layer_var_input_size", maxpool_layer_var_input_size),
     ("maxpool_layer_var_channels", maxpool_layer_var_channels),
     ("maxpool_layer_var_kernel_size", maxpool_layer_var_kernel_size),
+    ("maxpool_layer_var_iq", maxpool_layer_var_iq)
 ]
+
 
 def exp_get_time_list(exp, tool='chisel4ml'):
     time_list = []
@@ -42,7 +43,7 @@ def exp_get_time_list(exp, tool='chisel4ml'):
 
 
 def exp_get_elem_list(exp, tool='chisel4ml', elem='CLB LUTs*'):
-    elem_list =[]       
+    elem_list = []
     for run in exp:
         index = -1
         for ind, x in enumerate(run[tool]['util']['CLB Logic']):
@@ -53,8 +54,9 @@ def exp_get_elem_list(exp, tool='chisel4ml', elem='CLB LUTs*'):
         elem_list.append(float(run[tool]['util']['CLB Logic'][index]['Used']))
     return elem_list
 
+
 def exp_get_delay_list(exp, tool='chisel4ml', delay_type='Path Delay'):
-    elem_list =[]       
+    elem_list = []
     for run in exp:
         val = run[tool]['design'][delay_type][0:5]
         elem_list.append(float(val))
@@ -62,16 +64,17 @@ def exp_get_delay_list(exp, tool='chisel4ml', delay_type='Path Delay'):
 
 
 key_to_name_dict = {
-    "input_ch" : "Input Channels",
-    "output_ch" : "Output Channels",
-    "iq" : "Input Bitwidth",
-    "wq" : "Weights Bitwidth",
-    "in_features" : "Input Features",
-    "out_features" : "Output Features",
-    "channels" : "Channels",
+    "input_ch": "Input Channels",
+    "output_ch": "Output Channels",
+    "iq": "Input Bitwidth",
+    "wq": "Weights Bitwidth",
+    "in_features": "Input Features",
+    "out_features": "Output Features",
+    "channels": "Channels",
     "input_size": "Input Size",
     "kernel_size": "Kernel Size"
-}    
+}
+
 
 def get_x_axis(exp_dict):
     for key in exp_dict.keys():
@@ -80,6 +83,7 @@ def get_x_axis(exp_dict):
                 return list(map(lambda x: x[0], exp_dict[key])), key_to_name_dict[key]
             else:
                 return exp_dict[key], key_to_name_dict[key]
+
 
 if __name__ == "__main__":
     for exp in experiments:
@@ -98,7 +102,7 @@ if __name__ == "__main__":
 
         x_axis, x_axis_name = get_x_axis(exp[1])
         lut_arr = np.array([x_axis, c4ml_luts_list, hls4ml_luts_list])
-        time_arr = np.array([x_axis,  c4ml_syn_time_list, hls4ml_syn_time_list])
+        time_arr = np.array([x_axis, c4ml_syn_time_list, hls4ml_syn_time_list])
         delay_arr = np.array([x_axis, c4ml_delay_list, hls4ml_delay_list])
         lut_df = pd.DataFrame(lut_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
         time_df = pd.DataFrame(time_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
@@ -107,10 +111,9 @@ if __name__ == "__main__":
         melt_time_df = time_df.melt(x_axis_name, var_name='tool', value_name='Synthesis Time [hours]')
         melt_delay_df = delay_df.melt(x_axis_name, var_name='tool', value_name='Path Delay [ns]')
 
-
         sns.set_style("darkgrid", {"axes.facecolor": ".9"})
         if not os.path.isdir(f"plots/{exp[0]}"):
-           os.makedirs(f"plots/{exp[0]}")
+            os.makedirs(f"plots/{exp[0]}")
         lut_plot = sns.catplot(x=x_axis_name, y="Look-Up Tables", hue='tool', data=melt_lut_df, kind='point', markers=['o', 's'], legend_out=False, legend='brief')
         plt.savefig(f'plots/{exp[0]}/lut_plot.png')
         plt.close()

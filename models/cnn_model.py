@@ -1,13 +1,8 @@
-import brevitas
 import brevitas.nn as qnn
-import numpy as np
 import torch
 from torch.nn import Module
-from qonnx.core.datatype import DataType
-from qonnx.util.basic import gen_finn_dt_tensor
-from quantizers import WeightPerTensorQuant
-from quantizers import IntBiasQuant
-from quantizers import IntActQuant
+from models.quantizers import WeightPerTensorQuant
+from models.quantizers import IntBiasQuant
 
 
 def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
@@ -33,8 +28,8 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             self.relu = qnn.QuantReLU(bit_width=bitwidth, scaling_impl_type='const', scaling_init=(2**bitwidth) - 1)
             self.maxpool = torch.nn.MaxPool2d(kernel_size=maxpool_kernel_size)
             self.quant = qnn.QuantIdentity(
-                bit_width=bitwidth, 
-                scaling_impl_type='const', 
+                bit_width=bitwidth,
+                scaling_impl_type='const',
                 scaling_init=2**(bitwidth) - 1,
                 signed=False  # ReLU
             )
@@ -47,13 +42,13 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             x = self.maxpool(x)
             x = self.quant(x)
             return x
-    
+
     class DenseBlock(Module):
         def __init__(self, in_features, out_features):
             super(DenseBlock, self).__init__()
             self.dense = qnn.QuantLinear(
-                in_features = in_features,
-                out_features = out_features,
+                in_features=in_features,
+                out_features=out_features,
                 bias=True,
                 weight_quant=WeightPerTensorQuant,
                 weight_bit_width=bitwidth,
@@ -72,21 +67,21 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
                 x = self.bn(x)
             x = self.relu(x)
             return x
-    
+
     class CNNModel(Module):
         def __init__(self):
             super(CNNModel, self).__init__()
             self.ishape = (1, 1, 28, 28)
             self.quant_inp = qnn.QuantIdentity(
-                bit_width=input_bitwidth, 
-                scaling_impl_type='const', 
-                scaling_init=2**(input_bitwidth) -1,
+                bit_width=input_bitwidth,
+                scaling_impl_type='const',
+                scaling_init=2**(input_bitwidth) - 1,
                 signed=False
             )
-            self.conv0 = ConvBlock(input_ch = 1, output_ch = 8)   # 1 * 28 * 28
-            self.conv1 = ConvBlock(input_ch = 8, output_ch = 8)  # 8 * 13 * 13
-            self.dense0 = DenseBlock(in_features = 8 * 5 * 5, out_features= 256) # 16 * 5 * 5
-            self.dense1 = DenseBlock(in_features = 256, out_features= 10)
+            self.conv0 = ConvBlock(input_ch=1, output_ch=8)  # 1 * 28 * 28
+            self.conv1 = ConvBlock(input_ch=8, output_ch=8)  # 8 * 13 * 13
+            self.dense0 = DenseBlock(in_features=8 * 5 * 5, out_features=256)  # 16 * 5 * 5
+            self.dense1 = DenseBlock(in_features=256, out_features=10)
 
         def forward(self, x):
             x = self.quant_inp(x)

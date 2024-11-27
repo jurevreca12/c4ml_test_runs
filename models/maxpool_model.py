@@ -1,11 +1,11 @@
-import brevitas
 import brevitas.nn as qnn
 import numpy as np
 import torch
 from torch.nn import Module
 from qonnx.core.datatype import DataType
 from qonnx.util.basic import gen_finn_dt_tensor
-from quantizers import IntActQuant
+from models.quantizers import IntActQuant
+
 
 def get_maxpool_layer_model(channels, input_size, kernel_size, iq):
     class MaxPoolLayerModel(Module):
