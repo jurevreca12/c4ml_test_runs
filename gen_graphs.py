@@ -18,6 +18,7 @@ from main import maxpool_layer_var_channels_exp
 from main import maxpool_layer_var_kernel_size_exp
 from main import maxpool_layer_var_iq_exp
 from main import cnn_mnist_model_var_bitwidth_exp
+from main import cnn_mnist_model_var_prune_rate_exp
 
 experiments = [
     ("linear_layer_var_in_features_exp", linear_layer_var_in_features_exp),
@@ -35,7 +36,8 @@ experiments = [
     ("maxpool_layer_var_kernel_size_exp", maxpool_layer_var_kernel_size_exp),
     ("maxpool_layer_var_iq_exp", maxpool_layer_var_iq_exp),
 
-    ("cnn_mnist_model_var_bitwidth_exp", cnn_mnist_model_var_bitwidth_exp)
+    ("cnn_mnist_model_var_bitwidth_exp", cnn_mnist_model_var_bitwidth_exp),
+    ("cnn_mnist_model_var_prune_rate_exp", cnn_mnist_model_var_prune_rate_exp)
 ]
 
 

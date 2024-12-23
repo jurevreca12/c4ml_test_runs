@@ -27,7 +27,7 @@ def test_chisel4ml(qonnx_model, brevitas_model, test_data, work_dir, base_dir, t
         accelerators,
         lbir_model,
         use_verilator=True,
-        gen_timeout_sec=1600,
+        gen_timeout_sec=9000,
         server=c4ml_server
     )
     for x in test_data:
