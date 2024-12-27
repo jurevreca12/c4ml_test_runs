@@ -20,25 +20,6 @@ from main import maxpool_layer_var_iq_exp
 from main import cnn_mnist_model_var_bitwidth_exp
 from main import cnn_mnist_model_var_prune_rate_exp
 
-experiments = [
-    ("linear_layer_var_in_features_exp", linear_layer_var_in_features_exp),
-    ("linear_layer_var_out_features_exp", linear_layer_var_out_features_exp),
-    ("linear_layer_var_iq_exp", linear_layer_var_iq_exp),
-    ("linear_layer_var_wq_exp", linear_layer_var_wq_exp),
-
-    ("conv_layer_var_input_ch_exp", conv_layer_var_input_ch_exp),
-    ("conv_layer_var_output_ch_exp", conv_layer_var_output_ch_exp),
-    ("conv_layer_var_iq_exp", conv_layer_var_iq_exp),
-    ("conv_layer_var_wq_exp", conv_layer_var_wq_exp),
-
-    ("maxpool_layer_var_input_size_exp", maxpool_layer_var_input_size_exp),
-    ("maxpool_layer_var_channels_exp", maxpool_layer_var_channels_exp),
-    ("maxpool_layer_var_kernel_size_exp", maxpool_layer_var_kernel_size_exp),
-    ("maxpool_layer_var_iq_exp", maxpool_layer_var_iq_exp),
-
-    ("cnn_mnist_model_var_bitwidth_exp", cnn_mnist_model_var_bitwidth_exp),
-    ("cnn_mnist_model_var_prune_rate_exp", cnn_mnist_model_var_prune_rate_exp)
-]
 
 
 def exp_get_time_list(exp, tool='chisel4ml'):
@@ -91,10 +72,12 @@ def get_x_axis(exp_dict):
                 return exp_dict[key], key_to_name_dict[key]
 
 
+def gather_results(exp):
+    import pdb; pdb.set_trace()
+
+
 def generate_report_for_exp(exp):
-    with open(f"results/results_exp_{exp[0]}.json", 'r') as f:
-        json_str = f.read()
-    data = json.loads(json_str)
+    data = gather_results(exp)
 
     c4ml_syn_time_list = exp_get_time_list(data[0], tool='chisel4ml')
     hls4ml_syn_time_list = exp_get_time_list(data[0], tool='hls4ml')
@@ -164,7 +147,7 @@ def generate_report_for_exp(exp):
 
 
 if __name__ == "__main__":
-    for exp in experiments:
+    for exp in EXPERIMENTS:
         try:
             generate_report_for_exp(exp)
         except OSError:

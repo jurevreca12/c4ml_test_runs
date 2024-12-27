@@ -232,16 +232,10 @@ if __name__ == "__main__":
 
     if not os.path.exists(f'{SCRIPT_DIR}/results'):
         os.makedirs(f'{SCRIPT_DIR}/results')
-    results = []
     for exp in EXPERIMENTS:
         print(f"Running {exp[2]}")
         feat_list = list(itertools.product(*exp[0].values()))
         with ThreadPool(args.num_workers) as pool:
-            exp_results = pool.map(run_test, feat_list)
+            pool.map(run_test, feat_list)
         current_exp += 1
-        results.append(exp_results)
-
-        ser_res = json.dumps(results)
-        with open(f'{SCRIPT_DIR}/results/results_exp_{exp[2]}.json', 'w') as f:
-            f.write(ser_res)
         print(f"Finnished {exp[2]}")

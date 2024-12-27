@@ -107,10 +107,16 @@ def test_model(brevitas_model, test_data, work_dir, base_dir, top_name):
     lock.acquire()
     qonnx_model = transform.brevitas_to_qonnx(brevitas_model, brevitas_model.ishape)
     lock.release()
-    os.makedirs(f"{work_dir}/qonnx")
+    if not os.path.exists(f"{work_dir}/qonnx"):
+        os.makedirs(f"{work_dir}/qonnx")
     onnx.save(qonnx_model.model, f"{work_dir}/qonnx/model.onnx")
-    test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml/", base_dir, top_name)
-    c4ml_res = parse_reports(f"{work_dir}/c4ml/")
-    test_hls4ml(qonnx_model, f"{work_dir}/hls4ml/", base_dir)
-    hls4ml_res = parse_reports(f"{work_dir}/hls4ml/")
-    return {'work_dir': work_dir, 'chisel4ml': c4ml_res, 'hls4ml': hls4ml_res}
+    if not os.path.exists(f"{work_dir}/c4ml/utilization.rpt"):
+        print(f"Starting {work_dir}/c4ml run!")
+        test_chisel4ml(qonnx_model, brevitas_model, test_data, f"{work_dir}/c4ml/", base_dir, top_name)
+    else:
+        print(f"Skipping {work_dir}/c4ml run. Already Exists!")
+    if not os.path.exists(f"{work_dir}/hls4ml/utilization.rpt"):
+        print(f"Starting {work_dir}/hls4ml run!")
+        test_hls4ml(qonnx_model, f"{work_dir}/hls4ml/", base_dir)
+    else:
+        print(f"Skipping {work_dir}/hls4ml run. Already Exists!")
