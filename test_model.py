@@ -69,7 +69,7 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
         default_reuse_factor=1,
     )
     hls_config['Model']['ReuseFactor'] = 1
-    hls_config['Model']['Strategy'] = 'Unrolled'
+    hls_config['Model']['Strategy'] = 'Latency'
     for key in hls_config['LayerName'].keys():
         if "conv" in key.lower():
             hls_config['LayerName'][key]['ParallelizationFactor'] = 9999999

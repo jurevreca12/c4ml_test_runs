@@ -57,7 +57,7 @@ linear_layer_var_wq_exp = {
 # CONV LAYER EXPERIMENTS     #
 ##############################
 conv_layer_var_input_ch_exp = {
-    "input_size": ((16, 16),),
+    "input_size": ((8, 8),),
     "input_ch": (1, 2, 4, 8, 16),
     "output_ch": (1,),
     "kernel_size": ((3, 3),),
