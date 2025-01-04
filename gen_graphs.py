@@ -1,26 +1,14 @@
 import os
 import json
+import itertools
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from  matplotlib.ticker import FuncFormatter
 import numpy as np
-from main import linear_layer_var_in_features_exp
-from main import linear_layer_var_out_features_exp
-from main import linear_layer_var_iq_exp
-from main import linear_layer_var_wq_exp
-from main import conv_layer_var_input_ch_exp
-from main import conv_layer_var_output_ch_exp
-from main import conv_layer_var_iq_exp
-from main import conv_layer_var_wq_exp
-from main import maxpool_layer_var_input_size_exp
-from main import maxpool_layer_var_channels_exp
-from main import maxpool_layer_var_kernel_size_exp
-from main import maxpool_layer_var_iq_exp
-from main import cnn_mnist_model_var_bitwidth_exp
-from main import cnn_mnist_model_var_prune_rate_exp
-
-
+from main import EXPERIMENTS
+from main import get_work_dir
+from parse_reports import parse_reports
 
 def exp_get_time_list(exp, tool='chisel4ml'):
     time_list = []
@@ -73,22 +61,32 @@ def get_x_axis(exp_dict):
 
 
 def gather_results(exp):
-    import pdb; pdb.set_trace()
-
+    exp_name = exp[2]
+    exp_base = f'/circuits/{exp_name}/'
+    exp_keys = exp[0].keys()
+    feat_list = list(itertools.product(*exp[0].values()))
+    results = []
+    for feat in feat_list:
+        work_dir = get_work_dir(exp_keys, feat, base=exp_base)
+        c4ml_res = parse_reports(f'{work_dir}/c4ml/')
+        hls4ml_res = parse_reports(f'{work_dir}/hls4ml/')
+        test_res = {'work_dir': work_dir, 'chisel4ml': c4ml_res, 'hls4ml': hls4ml_res}
+        results.append(test_res)
+    return results
 
 def generate_report_for_exp(exp):
     data = gather_results(exp)
 
-    c4ml_syn_time_list = exp_get_time_list(data[0], tool='chisel4ml')
-    hls4ml_syn_time_list = exp_get_time_list(data[0], tool='hls4ml')
-    c4ml_luts_list = exp_get_elem_list(data[0], tool='chisel4ml', elem='CLB LUTs*')
-    hls4ml_luts_list = exp_get_elem_list(data[0], tool='hls4ml', elem='CLB LUTs*')
-    c4ml_ff_list = exp_get_elem_list(data[0], tool='chisel4ml', elem='CLB Registers')
-    hls4ml_ff_list = exp_get_elem_list(data[0], tool='hls4ml', elem='CLB Registers')
-    c4ml_delay_list = exp_get_delay_list(data[0], tool='chisel4ml')
-    hls4ml_delay_list = exp_get_delay_list(data[0], tool='hls4ml')
+    c4ml_syn_time_list = exp_get_time_list(data, tool='chisel4ml')
+    hls4ml_syn_time_list = exp_get_time_list(data, tool='hls4ml')
+    c4ml_luts_list = exp_get_elem_list(data, tool='chisel4ml', elem='CLB LUTs*')
+    hls4ml_luts_list = exp_get_elem_list(data, tool='hls4ml', elem='CLB LUTs*')
+    c4ml_ff_list = exp_get_elem_list(data, tool='chisel4ml', elem='CLB Registers')
+    hls4ml_ff_list = exp_get_elem_list(data, tool='hls4ml', elem='CLB Registers')
+    c4ml_delay_list = exp_get_delay_list(data, tool='chisel4ml')
+    hls4ml_delay_list = exp_get_delay_list(data, tool='hls4ml')
 
-    x_axis, x_axis_name = get_x_axis(exp[1])
+    x_axis, x_axis_name = get_x_axis(exp[0])
     lut_arr = np.array([x_axis, c4ml_luts_list, hls4ml_luts_list])
     time_arr = np.array([x_axis, c4ml_syn_time_list, hls4ml_syn_time_list])
     delay_arr = np.array([x_axis, c4ml_delay_list, hls4ml_delay_list])
@@ -104,8 +102,8 @@ def generate_report_for_exp(exp):
     melt_delay_df = delay_df.melt(x_axis_name, var_name='tool', value_name='Path Delay [ns]')
 
     sns.set_style("darkgrid", {"axes.facecolor": ".9"})
-    if not os.path.isdir(f"plots/{exp[0]}"):
-        os.makedirs(f"plots/{exp[0]}")
+    if not os.path.isdir(f"plots/{exp[2]}"):
+        os.makedirs(f"plots/{exp[2]}")
     sns.catplot(
         x=x_axis_name,
         y="Look-Up Tables",
@@ -117,7 +115,7 @@ def generate_report_for_exp(exp):
         legend='brief'
     )
     
-    plt.savefig(f'plots/{exp[0]}/lut_plot.png')
+    plt.savefig(f'plots/{exp[2]}/lut_plot.png')
     plt.close()
     sns.catplot(
         x=x_axis_name,
@@ -129,7 +127,7 @@ def generate_report_for_exp(exp):
         legend_out=False,
         legend='brief'
     )
-    plt.savefig(f'plots/{exp[0]}/syn_time_plot.png')
+    plt.savefig(f'plots/{exp[2]}/syn_time_plot.png')
     plt.close()
     sns.catplot(
         x=x_axis_name,
@@ -142,7 +140,7 @@ def generate_report_for_exp(exp):
         legend='brief'
     )
     plt.ylim(0)
-    plt.savefig(f'plots/{exp[0]}/delay_plot.png')
+    plt.savefig(f'plots/{exp[2]}/delay_plot.png')
     plt.close()
 
 
@@ -151,4 +149,4 @@ if __name__ == "__main__":
         try:
             generate_report_for_exp(exp)
         except OSError:
-            print(f"Results for {exp[0]} not found or plots already exist. Moving on.")
+            print(f"Results for {exp[2]} not found. Moving on.")
