@@ -136,7 +136,7 @@ cnn_mnist_model_var_bitwidth_exp = {
 
 cnn_mnist_model_var_prune_rate_exp = {
     "bitwidth": (4,),
-    "prune_rate": (0.5, 0.8, 0.85, 0.9, 0.95)
+    "prune_rate": (0.5, 0.8, 0.85, 0.88, 0.9)
 }
 
 EXPERIMENTS = (
@@ -191,8 +191,13 @@ def run_test(*args):
     exp_name = EXPERIMENTS[current_exp][2]
     top_name = EXPERIMENTS[current_exp][3]
     work_dir = get_work_dir(exp_dict.keys(), args[0], base=f"/circuits/{exp_name}/")
+    print(f"Starting work in: {work_dir}")
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
+    hls4ml_exists = os.path.exists(f"{work_dir}/c4ml/utilization.rpt") 
+    c4ml_exists = os.path.exists(f"{work_dir}/hls4ml/utilization.rpt")
+    if hls4ml_exists and c4ml_exists:
+        return
     brevitas_model, data, acc = model_gen(*args[0])
     if acc is not None:
         with open(f"{work_dir}/acc.log", 'w') as f:
