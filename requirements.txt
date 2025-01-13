@@ -1,5 +1,5 @@
-chisel4ml @ git+https://github.com/cs-jsi/chisel4ml@0.3.3
-hls4ml==1.0.0
+./chisel4ml/
+./hls4ml/
 vivado-report-parser
 pandas
 torchvision
