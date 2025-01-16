@@ -47,7 +47,9 @@ key_to_name_dict = {
     "out_features": "Output Features",
     "channels": "Channels",
     "input_size": "Input Size",
-    "kernel_size": "Kernel Size"
+    "kernel_size": "Kernel Size",
+    "bitwidth": "Bitwidth",
+    "prune_rate": "Prune Rate [%]",
 }
 
 
@@ -56,6 +58,8 @@ def get_x_axis(exp_dict):
         if len(exp_dict[key]) > 1:
             if isinstance(exp_dict[key][0], (tuple, list)):
                 return list(map(lambda x: x[0], exp_dict[key])), key_to_name_dict[key]
+            elif key == 'prune_rate':
+                return (np.array(exp_dict[key]) * 100).tolist(), key_to_name_dict[key]
             else:
                 return exp_dict[key], key_to_name_dict[key]
 
@@ -71,8 +75,19 @@ def gather_results(exp):
         c4ml_res = parse_reports(f'{work_dir}/c4ml/')
         hls4ml_res = parse_reports(f'{work_dir}/hls4ml/')
         test_res = {'work_dir': work_dir, 'chisel4ml': c4ml_res, 'hls4ml': hls4ml_res}
+        if os.path.exists(f'{work_dir}/acc.log'):
+            with open(f'{work_dir}/acc.log', 'r') as f:
+                ftxt = f.readlines()
+            acc = float(ftxt[1])
+            test_res['acc'] = acc
         results.append(test_res)
     return results
+
+def exp_get_acc_list(data):
+    acc_list = []
+    for d in data:
+        acc_list.append(d['acc'])
+    return acc_list
 
 def generate_report_for_exp(exp):
     data = gather_results(exp)
@@ -85,11 +100,15 @@ def generate_report_for_exp(exp):
     hls4ml_ff_list = exp_get_elem_list(data, tool='hls4ml', elem='CLB Registers')
     c4ml_delay_list = exp_get_delay_list(data, tool='chisel4ml')
     hls4ml_delay_list = exp_get_delay_list(data, tool='hls4ml')
+    if 'acc' in data[0].keys():
+        acc_list = exp_get_acc_list(data)
 
     x_axis, x_axis_name = get_x_axis(exp[0])
     lut_arr = np.array([x_axis, c4ml_luts_list, hls4ml_luts_list])
     time_arr = np.array([x_axis, c4ml_syn_time_list, hls4ml_syn_time_list])
     delay_arr = np.array([x_axis, c4ml_delay_list, hls4ml_delay_list])
+    if 'acc' in data[0].keys():
+        acc_arr = np.array([x_axis, acc_list])
 
     lut_df = pd.DataFrame(lut_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
     lut_df[x_axis_name] = lut_df[x_axis_name].apply(lambda x: int(x))
@@ -97,11 +116,15 @@ def generate_report_for_exp(exp):
     time_df[x_axis_name] = time_df[x_axis_name].apply(lambda x: int(x))
     delay_df = pd.DataFrame(delay_arr.T, columns=[x_axis_name, 'chisel4ml', 'hls4ml'])
     delay_df[x_axis_name] = delay_df[x_axis_name].apply(lambda x: int(x))
+    if 'acc' in data[0].keys():
+        acc_df = pd.DataFrame(acc_arr.T, columns=[x_axis_name, 'Accuracy'])
+        acc_df[x_axis_name] = acc_df[x_axis_name].apply(lambda x: int(x))
     melt_lut_df = lut_df.melt(x_axis_name, var_name='tool', value_name='Look-Up Tables')
     melt_time_df = time_df.melt(x_axis_name, var_name='tool', value_name='Synthesis Time [hours]')
     melt_delay_df = delay_df.melt(x_axis_name, var_name='tool', value_name='Path Delay [ns]')
 
     sns.set_style("darkgrid", {"axes.facecolor": ".9"})
+    sns.set(font_scale=1.5)
     if not os.path.isdir(f"plots/{exp[2]}"):
         os.makedirs(f"plots/{exp[2]}")
     sns.catplot(
@@ -143,6 +166,16 @@ def generate_report_for_exp(exp):
     plt.savefig(f'plots/{exp[2]}/delay_plot.png')
     plt.close()
 
+    if 'acc' in data[0].keys():
+        sns.catplot(
+            x=x_axis_name,
+            y="Accuracy",
+            data=acc_df,
+            kind='point',
+            color='k'
+        )
+        plt.savefig(f'plots/{exp[2]}/acc.png')
+        plt.close()
 
 if __name__ == "__main__":
     for exp in EXPERIMENTS:
