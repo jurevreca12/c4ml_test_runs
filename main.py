@@ -16,7 +16,7 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 # LINEAR LAYER EXPERIMENTS   #
 ##############################
 linear_layer_var_in_features_exp = {
-    "in_features": (16, 32, 64, 128, 256),
+    "in_features": (16, 32, 64, 128, 256, 512),
     "out_features": (32,),
     "bias": (True,),
     "iq": (4,),
@@ -26,7 +26,7 @@ linear_layer_var_in_features_exp = {
 }
 linear_layer_var_out_features_exp = {
     "in_features": (16,),
-    "out_features": (16, 32, 64, 128, 256),
+    "out_features": (16, 32, 64, 128, 256, 512),
     "bias": (True,),
     "iq": (4,),
     "wq": (4,),
@@ -71,7 +71,7 @@ conv_layer_var_output_ch_exp = {
     "input_ch": (1,),
     "output_ch": (1, 2, 4, 8, 16),
     "kernel_size": ((3, 3),),
-    "iq": (4,),
+    "iq": (4,), 
     "wq": (4,),
     "bq": (8,),
     "oq": (4,)
@@ -116,7 +116,7 @@ maxpool_layer_var_channels_exp = {
 maxpool_layer_var_kernel_size_exp = {
     "channels": (3,),
     "input_size": ((8, 8),),
-    "kernel_size": ((2, 2), (3, 3), (4, 4), (5, 5)),
+    "kernel_size": ((2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7)),
     "iq": (4,)
 }
 maxpool_layer_var_iq_exp = {
