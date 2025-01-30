@@ -122,7 +122,7 @@ def generate_report_for_exp(exp):
     melt_lut_df = lut_df.melt(x_axis_name, var_name='tool', value_name='Look-Up Tables')
     melt_time_df = time_df.melt(x_axis_name, var_name='tool', value_name='Synthesis Time [hours]')
     melt_delay_df = delay_df.melt(x_axis_name, var_name='tool', value_name='Path Delay [ns]')
-
+    
     sns.set_style("darkgrid", {"axes.facecolor": ".9"})
     sns.set(font_scale=1.5)
     if not os.path.isdir(f"plots/{exp[2]}"):
@@ -150,6 +150,7 @@ def generate_report_for_exp(exp):
         legend_out=False,
         legend='brief'
     )
+    plt.ylim(0)
     plt.savefig(f'plots/{exp[2]}/syn_time_plot.png')
     plt.close()
     sns.catplot(
