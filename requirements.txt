@@ -4,3 +4,5 @@ vivado-report-parser
 pandas
 torchvision
 seaborn
+brevitas
+tensorflow<2.16.0

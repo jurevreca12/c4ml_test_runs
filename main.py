@@ -6,9 +6,16 @@ from models.linear_model import get_linear_layer_model
 from models.conv_model import get_conv_layer_model
 from models.maxpool_model import get_maxpool_layer_model
 from models.train import train_quantized_mnist_model
-from test_model import test_model
+from test_chisel4ml import test_chisel4ml
+from test_hls4ml import test_hls4ml
+from brevitas.export import export_qonnx
+from qonnx.util.cleanup import cleanup_model
+from qonnx.core.modelwrapper import ModelWrapper
 import argparse
 import json
+import multiprocessing
+import torch
+import onnx
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -183,9 +190,15 @@ def get_work_dir(keys, values, base):
     specific_dir = functools.reduce(lambda a, b: a + "_" + b, str_list)
     return SCRIPT_DIR + base + specific_dir
 
+def _brevitas_to_qonnx(brevitas_model, input_shape):
+    qonnx_proto = export_qonnx(brevitas_model, torch.randn(input_shape))
+    qonnx_model = ModelWrapper(qonnx_proto)
+    qonnx_model = cleanup_model(qonnx_model)
+    return qonnx_model
 
+lock = multiprocessing.Lock()
 def run_test(*args):
-    global current_exp
+    global current_exp, lock, SCRIPT_DIR
     exp_dict = EXPERIMENTS[current_exp][0]
     model_gen = EXPERIMENTS[current_exp][1]
     exp_name = EXPERIMENTS[current_exp][2]
@@ -193,12 +206,27 @@ def run_test(*args):
     work_dir = get_work_dir(exp_dict.keys(), args[0], base=f"/circuits/{exp_name}/")
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
-    brevitas_model, data, acc = model_gen(*args[0])
+    brevitas_model, test_data, acc = model_gen(*args[0])
     if acc is not None:
         with open(f"{work_dir}/acc.log", 'w') as f:
             f.write(f"Final accuracy-{args[0]}:\n")
             f.write(f"{str(acc)}\n")
-    return test_model(brevitas_model, data, work_dir, SCRIPT_DIR, top_name)
+    lock.acquire()
+    qonnx_model = _brevitas_to_qonnx(brevitas_model, brevitas_model.ishape)
+    lock.release()
+    if not os.path.exists(f"{work_dir}/qonnx"):
+        os.makedirs(f"{work_dir}/qonnx")
+    onnx.save(qonnx_model.model, f"{work_dir}/qonnx/model.onnx")
+    if not os.path.exists(f"{work_dir}/c4ml/utilization.rpt"):
+        print(f"Starting {work_dir}/c4ml run!")
+        test_chisel4ml(qonnx_model, test_data, f"{work_dir}/c4ml/", SCRIPT_DIR, top_name)
+    else:
+        print(f"Skipping {work_dir}/c4ml run. Already Exists!")
+    if not os.path.exists(f"{work_dir}/hls4ml/utilization.rpt"):
+        print(f"Starting {work_dir}/hls4ml run!")
+        test_hls4ml(qonnx_model, f"{work_dir}/hls4ml/", SCRIPT_DIR)
+    else:
+        print(f"Skipping {work_dir}/hls4ml run. Already Exists!") 
 
 
 if __name__ == "__main__":
@@ -224,6 +252,12 @@ if __name__ == "__main__":
         help='Name of the experiment to run.'
     )
     args = parser.parse_args()
+    print("------------------------------------------------------")
+    print("KEY = VALUE")
+    print("------------------------------------------------------")
+    for key, value in vars(args).items():
+        print(f"{key} = {value}")
+    print("------------------------------------------------------")
     if args.experiment_name != "":
         exp = get_exp_by_name(args.experiment_name)
         EXPERIMENTS = (exp,)
