@@ -49,7 +49,7 @@ key_to_name_dict = {
     "input_size": "Input Size",
     "kernel_size": "Kernel Size",
     "bitwidth": "Bitwidth",
-    "prune_rate": "Prune Rate [%]",
+    "prune_rate": "Pruning Rate [%]",
 }
 
 
@@ -89,6 +89,18 @@ def exp_get_acc_list(data):
         acc_list.append(d['acc'])
     return acc_list
 
+def gen_table_entry(
+    c4ml_luts_list,
+    hls4ml_luts_list,
+    work_dir):
+    
+    luts_diff = np.array(c4ml_luts_list) - np.array(hls4ml_luts_list)
+    luts_rel  = luts_diff / np.array(hls4ml_luts_list)
+    luts_min_rel = np.min(luts_rel) * 100
+    luts_max_rel = np.max(luts_rel) * 100
+    with open(f'plots/{work_dir}/results.txt', 'w') as f:
+        f.write(f'{luts_min_rel}\n{luts_max_rel}\n')
+
 def generate_report_for_exp(exp):
     data = gather_results(exp)
 
@@ -96,10 +108,13 @@ def generate_report_for_exp(exp):
     hls4ml_syn_time_list = exp_get_time_list(data, tool='hls4ml')
     c4ml_luts_list = exp_get_elem_list(data, tool='chisel4ml', elem='CLB LUTs*')
     hls4ml_luts_list = exp_get_elem_list(data, tool='hls4ml', elem='CLB LUTs*')
-    c4ml_ff_list = exp_get_elem_list(data, tool='chisel4ml', elem='CLB Registers')
-    hls4ml_ff_list = exp_get_elem_list(data, tool='hls4ml', elem='CLB Registers')
     c4ml_delay_list = exp_get_delay_list(data, tool='chisel4ml')
     hls4ml_delay_list = exp_get_delay_list(data, tool='hls4ml')
+    gen_table_entry(
+        c4ml_luts_list,
+        hls4ml_luts_list,
+        work_dir=exp[2]
+    )
     if 'acc' in data[0].keys():
         acc_list = exp_get_acc_list(data)
 
@@ -120,7 +135,7 @@ def generate_report_for_exp(exp):
         acc_df = pd.DataFrame(acc_arr.T, columns=[x_axis_name, 'Accuracy'])
         acc_df[x_axis_name] = acc_df[x_axis_name].apply(lambda x: int(x))
     melt_lut_df = lut_df.melt(x_axis_name, var_name='tool', value_name='Look-Up Tables')
-    melt_time_df = time_df.melt(x_axis_name, var_name='tool', value_name='Synthesis Time [hours]')
+    melt_time_df = time_df.melt(x_axis_name, var_name='tool', value_name='Generation Time [hours]')
     melt_delay_df = delay_df.melt(x_axis_name, var_name='tool', value_name='Path Delay [ns]')
     
     sns.set_style("darkgrid", {"axes.facecolor": ".9"})
@@ -142,7 +157,7 @@ def generate_report_for_exp(exp):
     plt.close()
     sns.catplot(
         x=x_axis_name,
-        y="Synthesis Time [hours]",
+        y="Generation Time [hours]",
         hue='tool',
         data=melt_time_df,
         kind='point',
