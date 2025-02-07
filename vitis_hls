@@ -1,0 +1,5 @@
+#!/bin/bash
+source $VITIS_HLS_DIR/settings64.sh
+echo "ASDASDASDASD"
+echo "$0 $@"
+vitis_hls $@

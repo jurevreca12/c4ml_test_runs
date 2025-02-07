@@ -1,4 +1,5 @@
 import os
+import json
 import time
 import onnx
 import qonnx
@@ -40,20 +41,10 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
         part='xcvu9p-flga2104-2L-e'
     )
     hls_model.compile()
-    hls_model.build(csim=False, synth=True, cosim=True, vsynth=True)
-    #commands = [
-    #    "vivado",
-    #    "-mode", "batch",
-    #    "-source", f"{base_dir}/synth_hls.tcl",
-    #    "-nojournal",
-    #    "-nolog",
-    #    "-tclargs", work_dir, base_dir
-    #]
-    #with open(f"{work_dir}/vivado.log", 'w') as log_file:
-    #    cp = subprocess.run(commands, stdout=log_file, stderr=log_file)
-    assert cp.returncode == 0
+    os.system(f"cp {base_dir}/synth_hls.tcl {work_dir}/vivado_synth.tcl")
+    ret = hls_model.build(csim=False, synth=True, cosim=True, vsynth=True)
     duration = time.perf_counter() - starttime
-    with open(f"{work_dir}/time.log", 'w') as time_file:
-        time_file.write("HLS4ML SYNTHESIS TIME:\n")
-        time_file.write(f"{str(duration)}\n")
-
+    ret['total_duration'] = duration
+    ret['tool'] = 'hls4ml'
+    with open(f"{work_dir}/info.json", 'w') as info_file:
+        json.dump(ret, info_file)

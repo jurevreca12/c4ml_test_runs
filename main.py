@@ -1,4 +1,5 @@
 import os
+import sys
 import itertools
 import functools
 from multiprocessing.pool import ThreadPool
@@ -264,8 +265,18 @@ if __name__ == "__main__":
     if args.experiment_num >= 0:
         EXPERIMENTS = (EXPERIMENTS[args.experiment_num],)
 
-    if not os.path.exists(f'{SCRIPT_DIR}/results'):
-        os.makedirs(f'{SCRIPT_DIR}/results')
+    
+    # Make sure vitis_hls not in path (so we can intercept it and profile it)
+    if not "VITIS_HLS_DIR" in os.environ:
+        raise SystemError("Missing enviromental variable VITIS_HLS_DIR. Please define "
+                          "it as the path to the Vitis installation.")
+    if not SCRIPT_DIR in sys.path:
+        raise SystemError("Missing enviromental variable VITIS_HLS_DIR. Please define "
+                          "it as the path to the Vitis installation.")
+    if os.environ['VITIS_HLS_DIR'] in sys.path:
+        raise SystemError("vitis_hls found in path. This prevents this script from "
+                          "intercepting the command and adding memory profiling. "
+                          "Please remove vitis_hls from system path.")
     for exp in EXPERIMENTS:
         print(f"Running {exp[2]}")
         feat_list = list(itertools.product(*exp[0].values()))
