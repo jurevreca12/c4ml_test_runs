@@ -1,5 +1,4 @@
 #!/bin/bash
 source $VITIS_HLS_DIR/settings64.sh
-echo "ASDASDASDASD"
-echo "$0 $@"
-vitis_hls $@
+echo "RUNNING MEMORY PROFILER on vitis_hls $@"
+python3 -m memory_profiler vitis_hls $@

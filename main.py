@@ -271,12 +271,12 @@ if __name__ == "__main__":
         raise SystemError("Missing enviromental variable VITIS_HLS_DIR. Please define "
                           "it as the path to the Vitis installation.")
     if not SCRIPT_DIR in sys.path:
-        raise SystemError("Missing enviromental variable VITIS_HLS_DIR. Please define "
-                          "it as the path to the Vitis installation.")
+        raise SystemError("Base directory not in PATH. Please add it to PATH.")
     if os.environ['VITIS_HLS_DIR'] in sys.path:
         raise SystemError("vitis_hls found in path. This prevents this script from "
                           "intercepting the command and adding memory profiling. "
                           "Please remove vitis_hls from system path.")
+    os.environ['PYTHONPATH'] = SCRIPT_DIR
     for exp in EXPERIMENTS:
         print(f"Running {exp[2]}")
         feat_list = list(itertools.product(*exp[0].values()))

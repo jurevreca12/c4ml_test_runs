@@ -2,6 +2,7 @@ import psutil
 import subprocess
 import time
 import sys
+import json
 
 class ProcessContainer:
   def __init__(self,command):
@@ -12,16 +13,12 @@ class ProcessContainer:
     self.max_vms_memory = 0
     self.max_rss_memory = 0
 
-    self.t1 = None
-    self.t0 = time.time()
     self.p = subprocess.Popen(self.command,shell=False)
     self.execution_state = True
 
   def poll(self):
     if not self.check_execution_state():
       return False
-
-    self.t1 = time.time()
 
     try:
       pp = psutil.Process(self.p.pid)
@@ -63,7 +60,6 @@ class ProcessContainer:
     if self.is_running():
       return True
     self.executation_state = False
-    self.t1 = time.time()
     return False
 
   def close(self,kill=False):
@@ -79,7 +75,6 @@ class ProcessContainer:
 
 
 if __name__ == "__main__":
-    #I am executing "make target" here
     proc_cont = ProcessContainer(sys.argv[1:])
     try:
       proc_cont.execute()
@@ -93,7 +88,14 @@ if __name__ == "__main__":
       proc_cont.close()
    
     print('return code:', proc_cont.p.returncode)
-    print('time:', proc_cont.t1 - proc_cont.t0)
-    print('max_vms_memory:', proc_cont.max_vms_memory)
-    print('max_rss_memory:', proc_cont.max_rss_memory)
+    print(f'max_vms_memory_mib: {proc_cont.max_vms_memory / (1024 * 1024)} MiB')
+    print(f'max_rss_memory_mib: {proc_cont.max_rss_memory / (1024 * 1024)} MiB')
+    print(f'max_vms_memory: {proc_cont.max_vms_memory}')
+    print(f'max_rss_memory: {proc_cont.max_rss_memory}')
+    result_dict = {
+        'max_vms_memory': proc_cont.max_vms_memory, 
+        'max_rss_memory': proc_cont.max_rss_memory
+    }
+    with open('memory_info.json', 'w') as mem_file:
+        json.dump(result_dict, mem_file)
     sys.exit(0)

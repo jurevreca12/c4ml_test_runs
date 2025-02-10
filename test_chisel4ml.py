@@ -18,6 +18,10 @@ from parse_reports import parse_reports
 
 
 def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
+    curr_dir = os.getcwd()
+    if not os.path.exists(work_dir):
+        os.makedirs(work_dir)
+    os.chdir(work_dir)
     start_time = time.perf_counter()
     lbir_model = transform.qonnx_to_lbir(qonnx_model)
     accelerators = generate.accelerators(
@@ -65,3 +69,4 @@ def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
     info_dict['tool'] = 'chisel4ml'
     with open(f"{work_dir}/info.json", 'w') as info_file:
         json.dump(info_dict, info_file)
+    os.chdir(curr_dir)

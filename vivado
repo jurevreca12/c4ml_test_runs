@@ -1,3 +1,4 @@
 #!/bin/bash
 source $VITIS_HLS_DIR/settings64.sh
-python3 profile.py vivado $@
+echo "RUNNING MEMORY PROFILLER on vivado $@"
+python3 -m memory_profiler vivado $@
