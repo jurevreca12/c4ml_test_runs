@@ -15,7 +15,12 @@ from chisel4ml import transform
 from chisel4ml import generate
 from server import create_server
 from parse_reports import parse_reports
+from memory_profiler import ProcessContainer
+from threading import Thread
 
+def mem_profiling_thread_fn(proc_cont):
+    while proc_cont.poll():
+        time.sleep(.5)
 
 def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
     curr_dir = os.getcwd()
@@ -29,6 +34,9 @@ def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
         minimize="delay",
     )
     c4ml_server, c4ml_subp = create_server(f'{base_dir}/chisel4ml/out/chisel4ml/assembly.dest/out.jar')
+    mem_prof = ProcessContainer(subp=c4ml_subp)
+    mem_prof_thread = Thread(target=mem_profiling_thread_fn, args=(mem_prof,))
+    mem_prof_thread.start()
     circuit = generate.circuit(
         accelerators,
         lbir_model,
@@ -48,6 +56,13 @@ def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
     circuit.package(work_dir)
     c4ml_server.stop()
     c4ml_subp.terminate()
+    mem_prof_thread.join()
+    c4ml_mem_dict = {
+        'max_vms_memory': mem_prof.max_vms_memory,
+        'max_rss_memory': mem_prof.max_rss_memory
+    }
+    with open(f'{work_dir}/memory_info_c4ml.json', 'w') as f:
+        json.dump(c4ml_mem_dict, f)
     commands = [
         "vivado",
         "-mode", "batch",
@@ -65,7 +80,9 @@ def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
     info_dict['simulation_duration'] = simulation_time - compile_time
     info_dict['synthesis_duration'] = synthesis_time - simulation_time
     info_dict['total_duration'] = synthesis_time - start_time
-    info_dict['exact_latency'] = len(lbir_model.layers) + 1 # C4ML injects a stage for every lbir layer
+    info_dict['exact_latency'] = len(lbir_model.layers) + 1 # a stage for every lbir layer
+    info_dict['max_vms_memory'] = mem_prof.max_vms_memory
+    info_dict['max_rss_memory'] = mem_prof.max_rss_memory
     info_dict['tool'] = 'chisel4ml'
     with open(f"{work_dir}/info.json", 'w') as info_file:
         json.dump(info_dict, info_file)

@@ -5,16 +5,23 @@ import sys
 import json
 
 class ProcessContainer:
-  def __init__(self,command):
+  def __init__(self, command=None, subp=None):
     self.command = command
-    self.execution_state = False
+    self.p = subp
+    self.max_vms_memory = 0
+    self.max_rss_memory = 0
+    if self.p is None:
+        self.execution_state = False
+    else:
+        self.execution_state = True
+
 
   def execute(self):
     self.max_vms_memory = 0
     self.max_rss_memory = 0
-
-    self.p = subprocess.Popen(self.command,shell=False)
-    self.execution_state = True
+    if self.p is None:
+        self.p = subprocess.Popen(self.command,shell=False)
+        self.execution_state = True
 
   def poll(self):
     if not self.check_execution_state():
@@ -37,15 +44,15 @@ class ProcessContainer:
 
           rss_memory += mem_info[0]
           vms_memory += mem_info[1]
-        except psutil.error.NoSuchProcess:
+        except psutil.NoSuchProcess:
           #sometimes a subprocess descendant will have terminated between the time
           # we obtain a list of descendants, and the time we actually poll this
           # descendant's memory usage.
           pass
-      self.max_vms_memory = max(self.max_vms_memory,vms_memory)
-      self.max_rss_memory = max(self.max_rss_memory,rss_memory)
+      self.max_vms_memory = max(self.max_vms_memory, vms_memory)
+      self.max_rss_memory = max(self.max_rss_memory, rss_memory)
 
-    except psutil.error.NoSuchProcess:
+    except psutil.NoSuchProcess:
       return self.check_execution_state()
 
 
@@ -81,7 +88,6 @@ if __name__ == "__main__":
       #poll as often as possible; otherwise the subprocess might 
       # "sneak" in some extra memory usage while you aren't looking
       while proc_cont.poll():
-    
         time.sleep(.5)
     finally:
       #make sure that we don't leave the process dangling?
