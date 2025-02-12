@@ -2,7 +2,7 @@ import os
 import sys
 import itertools
 import functools
-from multiprocessing.pool import ThreadPool
+from concurrent.futures import ProcessPoolExecutor
 from models.linear_model import get_linear_layer_model
 from models.conv_model import get_conv_layer_model
 from models.maxpool_model import get_maxpool_layer_model
@@ -24,7 +24,7 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 # LINEAR LAYER EXPERIMENTS   #
 ##############################
 linear_layer_var_in_features_exp = {
-    "in_features": (16, 32, 64, 128, 256),
+    "in_features": (16, 32, 64, 128, 256, 512),
     "out_features": (32,),
     "bias": (True,),
     "iq": (4,),
@@ -34,7 +34,7 @@ linear_layer_var_in_features_exp = {
 }
 linear_layer_var_out_features_exp = {
     "in_features": (16,),
-    "out_features": (16, 32, 64, 128, 256),
+    "out_features": (16, 32, 64, 128, 256, 512),
     "bias": (True,),
     "iq": (4,),
     "wq": (4,),
@@ -124,7 +124,7 @@ maxpool_layer_var_channels_exp = {
 maxpool_layer_var_kernel_size_exp = {
     "channels": (3,),
     "input_size": ((8, 8),),
-    "kernel_size": ((2, 2), (3, 3), (4, 4), (5, 5)),
+    "kernel_size": ((2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7)),
     "iq": (4,)
 }
 maxpool_layer_var_iq_exp = {
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     for exp in EXPERIMENTS:
         print(f"Running {exp[2]}")
         feat_list = list(itertools.product(*exp[0].values()))
-        with ThreadPool(args.num_workers) as pool:
+        with ProcessPoolExecutor(max_workers=args.num_workers) as pool:
             pool.map(run_test, feat_list)
         current_exp += 1
         print(f"Finnished {exp[2]}")

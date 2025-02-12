@@ -99,6 +99,7 @@ if __name__ == "__main__":
     print(f'max_vms_memory: {proc_cont.max_vms_memory}')
     print(f'max_rss_memory: {proc_cont.max_rss_memory}')
     result_dict = {
+        'sys_args': sys.argv,
         'max_vms_memory': proc_cont.max_vms_memory, 
         'max_rss_memory': proc_cont.max_rss_memory
     }
