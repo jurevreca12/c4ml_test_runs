@@ -33,7 +33,7 @@ def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
         lbir_model,
         minimize="delay",
     )
-    c4ml_server, c4ml_subp = create_server(f'{base_dir}/chisel4ml/out/chisel4ml/assembly.dest/out.jar')
+    c4ml_server, c4ml_subp = create_server('/c4ml/chisel4ml.jar')
     mem_prof = ProcessContainer(subp=c4ml_subp)
     mem_prof_thread = Thread(target=mem_profiling_thread_fn, args=(mem_prof,))
     mem_prof_thread.start()

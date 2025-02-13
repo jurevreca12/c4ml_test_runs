@@ -1,0 +1,15 @@
+services:
+        c4ml_test_runs:
+                build: .
+                environment:
+                        - VITIS_HLS_DIR=${VITIS_HLS_DIR}
+                        - LM_LICENSE_FILE=${LM_LICENSE_FILE}
+                volumes:
+                        - ${XILINX_DIR}:${XILINX_DIR}
+                        - .:/workspace
+                ports:
+                        - "5280:5280"
+                stdin_open: true
+                tty: true
+                working_dir: /workspace
+                entrypoint: /bin/bash

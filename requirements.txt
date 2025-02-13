@@ -1,8 +1,30 @@
-./chisel4ml/
-hls4ml/
+chisel4ml==0.3.6
+hls4ml @ git+https://github.com/fastmachinelearning/hls4ml@2c17f66
+finn @ git+https://github.com/Xilinx/finn@v0.10.1
 vivado-report-parser
 pandas
 torchvision
 seaborn
 brevitas
 tensorflow<2.16.0
+pyverilator @ git+https://github.com/maltanar/pyverilator.git@cfb27e0
+dataclasses_json
+pytest
+importlib-resources
+bitstring==3.1.7
+clize==5.0.1
+gspread==3.6.0
+ipython==8.12.2
+numpy==1.24.1
+onnx
+onnxoptimizer
+onnxruntime
+protobuf==3.20.3
+psutil==5.9.4
+pyscaffold==4.4
+scipy==1.10.1
+setupext-janitor>=1.1.2
+sigtools==4.0.1
+toposort==1.7.0
+vcdvcd==1.0.5
+wget==3.2

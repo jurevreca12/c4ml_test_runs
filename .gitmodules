@@ -1,9 +1,0 @@
-[submodule "chisel4ml"]
-	path = chisel4ml
-	url = https://github.com/cs-jsi/chisel4ml
-[submodule "hls4ml"]
-	path = hls4ml
-	url = https://github.com/fastmachinelearning/hls4ml
-[submodule "finn"]
-	path = finn
-	url = https://github.com/Xilinx/finn

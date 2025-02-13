@@ -252,6 +252,12 @@ if __name__ == "__main__":
         default="",
         help='Name of the experiment to run.'
     )
+    parser.add_argument(
+        '--debug',
+        '-d',
+        action='store_true',
+        help='Run in debug mode, where only one process is active.'
+    )
     args = parser.parse_args()
     print("------------------------------------------------------")
     print("KEY = VALUE")
@@ -280,7 +286,11 @@ if __name__ == "__main__":
     for exp in EXPERIMENTS:
         print(f"Running {exp[2]}")
         feat_list = list(itertools.product(*exp[0].values()))
-        with ProcessPoolExecutor(max_workers=args.num_workers) as pool:
-            pool.map(run_test, feat_list)
+        if args.debug:
+            for feat in feat_list:
+                run_test(feat)
+        else:
+            with ProcessPoolExecutor(max_workers=args.num_workers) as pool:
+                pool.map(run_test, feat_list)
         current_exp += 1
         print(f"Finnished {exp[2]}")

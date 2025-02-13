@@ -1,4 +1,4 @@
 #!/bin/bash
 source $VITIS_HLS_DIR/settings64.sh
 echo "RUNNING MEMORY PROFILER on vitis_hls $@"
-python3 -m memory_profiler vitis_hls $@
+LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 python3 -m memory_profiler vitis_hls $@
