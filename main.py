@@ -9,6 +9,7 @@ from models.maxpool_model import get_maxpool_layer_model
 from models.train import train_quantized_mnist_model
 from test_chisel4ml import test_chisel4ml
 from test_hls4ml import test_hls4ml
+from test_finn import test_finn
 from brevitas.export import export_qonnx
 from qonnx.util.cleanup import cleanup_model
 from qonnx.core.modelwrapper import ModelWrapper
@@ -266,9 +267,6 @@ def _brevitas_to_qonnx(brevitas_model, input_shape):
     return qonnx_model
 
 
-lock = multiprocessing.Lock()
-
-
 def run_test(*args):
     global current_exp, lock, SCRIPT_DIR
     exp_dict = EXPERIMENTS[current_exp][0]
@@ -283,12 +281,11 @@ def run_test(*args):
         with open(f"{work_dir}/acc.log", "w") as f:
             f.write(f"Final accuracy-{args[0]}:\n")
             f.write(f"{str(acc)}\n")
-    lock.acquire()
     qonnx_model = _brevitas_to_qonnx(brevitas_model, brevitas_model.ishape)
-    lock.release()
     if not os.path.exists(f"{work_dir}/qonnx"):
         os.makedirs(f"{work_dir}/qonnx")
-    onnx.save(qonnx_model.model, f"{work_dir}/qonnx/model.onnx")
+    qonnx_model_file = f"{work_dir}/qonnx/model.onnx"
+    onnx.save(qonnx_model.model, qonnx_model_file)
     if not os.path.exists(f"{work_dir}/c4ml/utilization.rpt"):
         print(f"Starting {work_dir}/c4ml run!")
         test_chisel4ml(
@@ -296,9 +293,14 @@ def run_test(*args):
         )
     else:
         print(f"Skipping {work_dir}/c4ml run. Already Exists!")
-    if not os.path.exists(f"{work_dir}/hls4ml/utilization.rpt"):
+    if not os.path.exists(f"{work_dir}/hls4ml/vivado_synth.rpt"):
         print(f"Starting {work_dir}/hls4ml run!")
         test_hls4ml(qonnx_model, f"{work_dir}/hls4ml/", SCRIPT_DIR)
+    else:
+        print(f"Skipping {work_dir}/hls4ml run. Already Exists!")
+    if not os.path.exists(f"{work_dir}/finn/report/rtlsim_performance.json"):
+        print(f"Starting {work_dir}/finn run!")
+        test_finn(qonnx_model_file, f"{work_dir}/finn/", SCRIPT_DIR)
     else:
         print(f"Skipping {work_dir}/hls4ml run. Already Exists!")
 
