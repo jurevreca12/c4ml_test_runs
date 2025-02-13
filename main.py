@@ -13,7 +13,6 @@ from brevitas.export import export_qonnx
 from qonnx.util.cleanup import cleanup_model
 from qonnx.core.modelwrapper import ModelWrapper
 import argparse
-import json
 import multiprocessing
 import torch
 import onnx
@@ -30,7 +29,7 @@ linear_layer_var_in_features_exp = {
     "iq": (4,),
     "wq": (4,),
     "bq": (8,),
-    "oq": (4,)
+    "oq": (4,),
 }
 linear_layer_var_out_features_exp = {
     "in_features": (16,),
@@ -39,7 +38,7 @@ linear_layer_var_out_features_exp = {
     "iq": (4,),
     "wq": (4,),
     "bq": (8,),
-    "oq": (4,)
+    "oq": (4,),
 }
 linear_layer_var_iq_exp = {
     "in_features": (32,),
@@ -48,7 +47,7 @@ linear_layer_var_iq_exp = {
     "iq": (2, 3, 4, 5, 6, 7),
     "wq": (4,),
     "bq": (8,),
-    "oq": (4,)
+    "oq": (4,),
 }
 linear_layer_var_wq_exp = {
     "in_features": (32,),
@@ -57,7 +56,7 @@ linear_layer_var_wq_exp = {
     "iq": (4,),
     "wq": (2, 3, 4, 5, 6, 7),
     "bq": (8,),
-    "oq": (4,)
+    "oq": (4,),
 }
 
 
@@ -72,7 +71,7 @@ conv_layer_var_input_ch_exp = {
     "iq": (4,),
     "wq": (4,),
     "bq": (8,),
-    "oq": (4,)
+    "oq": (4,),
 }
 conv_layer_var_output_ch_exp = {
     "input_size": ((16, 16),),
@@ -82,7 +81,7 @@ conv_layer_var_output_ch_exp = {
     "iq": (4,),
     "wq": (4,),
     "bq": (8,),
-    "oq": (4,)
+    "oq": (4,),
 }
 conv_layer_var_iq_exp = {
     "input_size": ((16, 16),),
@@ -92,7 +91,7 @@ conv_layer_var_iq_exp = {
     "iq": (2, 3, 4, 5, 6, 7),
     "wq": (4,),
     "bq": (8,),
-    "oq": (4,)
+    "oq": (4,),
 }
 conv_layer_var_wq_exp = {
     "input_size": ((16, 16),),
@@ -102,7 +101,7 @@ conv_layer_var_wq_exp = {
     "iq": (4,),
     "wq": (2, 3, 4, 5, 6, 7),
     "bq": (8,),
-    "oq": (4,)
+    "oq": (4,),
 }
 
 
@@ -113,25 +112,25 @@ maxpool_layer_var_input_size_exp = {
     "channels": (3,),
     "input_size": ((4, 4), (8, 8), (12, 12), (16, 16)),
     "kernel_size": ((3, 3),),
-    "iq": (4,)
+    "iq": (4,),
 }
 maxpool_layer_var_channels_exp = {
     "channels": (1, 2, 4, 8, 16),
     "input_size": ((8, 8),),
     "kernel_size": ((3, 3),),
-    "iq": (4,)
+    "iq": (4,),
 }
 maxpool_layer_var_kernel_size_exp = {
     "channels": (3,),
     "input_size": ((8, 8),),
     "kernel_size": ((2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7)),
-    "iq": (4,)
+    "iq": (4,),
 }
 maxpool_layer_var_iq_exp = {
     "channels": (3,),
     "input_size": ((8, 8),),
     "kernel_size": ((2, 2),),
-    "iq": (2, 3, 4, 5, 6, 7)
+    "iq": (2, 3, 4, 5, 6, 7),
 }
 
 ##############################
@@ -139,32 +138,99 @@ maxpool_layer_var_iq_exp = {
 ##############################
 cnn_mnist_model_var_bitwidth_exp = {
     "bitwidth": (2, 3, 4, 5, 6, 7),
-    "prune_rate": (0.5,)
+    "prune_rate": (0.5,),
 }
 
 cnn_mnist_model_var_prune_rate_exp = {
     "bitwidth": (4,),
-    "prune_rate": (0.5, 0.8, 0.85, 0.9, 0.95)
+    "prune_rate": (0.5, 0.8, 0.85, 0.9, 0.95),
 }
 
 EXPERIMENTS = (
-    (linear_layer_var_in_features_exp, get_linear_layer_model, "linear_layer_var_in_features_exp", "NeuronProcessingUnit"),  # 0
-    (linear_layer_var_out_features_exp, get_linear_layer_model, "linear_layer_var_out_features_exp", "NeuronProcessingUnit"),  # 1
-    (linear_layer_var_iq_exp, get_linear_layer_model, "linear_layer_var_iq_exp", "NeuronProcessingUnit"),  # 2
-    (linear_layer_var_wq_exp, get_linear_layer_model, "linear_layer_var_wq_exp", "NeuronProcessingUnit"),  # 3
-
-    (conv_layer_var_input_ch_exp, get_conv_layer_model, "conv_layer_var_input_ch_exp", "NeuronProcessingUnit"),  # 4
-    (conv_layer_var_output_ch_exp, get_conv_layer_model, "conv_layer_var_output_ch_exp", "NeuronProcessingUnit"),  # 5
-    (conv_layer_var_iq_exp, get_conv_layer_model, "conv_layer_var_iq_exp", "NeuronProcessingUnit"),  # 6
-    (conv_layer_var_wq_exp, get_conv_layer_model, "conv_layer_var_wq_exp", "NeuronProcessingUnit"),  # 7
-
-    (maxpool_layer_var_input_size_exp, get_maxpool_layer_model, "maxpool_layer_var_input_size_exp", "OrderProcessingUnit"),  # 8
-    (maxpool_layer_var_channels_exp, get_maxpool_layer_model, "maxpool_layer_var_channels_exp", "OrderProcessingUnit"),  # 9
-    (maxpool_layer_var_kernel_size_exp, get_maxpool_layer_model, "maxpool_layer_var_kernel_size_exp", "OrderProcessingUnit"),  # 10
-    (maxpool_layer_var_iq_exp, get_maxpool_layer_model, "maxpool_layer_var_iq_exp", "OrderProcessingUnit"),  # 11
-
-    (cnn_mnist_model_var_bitwidth_exp, train_quantized_mnist_model, "cnn_mnist_model_var_bitwidth_exp", "ProcessingPipeline"),  # 12
-    (cnn_mnist_model_var_prune_rate_exp, train_quantized_mnist_model, "cnn_mnist_model_var_prune_rate_exp", "ProcessingPipeline")  # 13
+    (
+        linear_layer_var_in_features_exp,
+        get_linear_layer_model,
+        "linear_layer_var_in_features_exp",
+        "NeuronProcessingUnit",
+    ),  # 0
+    (
+        linear_layer_var_out_features_exp,
+        get_linear_layer_model,
+        "linear_layer_var_out_features_exp",
+        "NeuronProcessingUnit",
+    ),  # 1
+    (
+        linear_layer_var_iq_exp,
+        get_linear_layer_model,
+        "linear_layer_var_iq_exp",
+        "NeuronProcessingUnit",
+    ),  # 2
+    (
+        linear_layer_var_wq_exp,
+        get_linear_layer_model,
+        "linear_layer_var_wq_exp",
+        "NeuronProcessingUnit",
+    ),  # 3
+    (
+        conv_layer_var_input_ch_exp,
+        get_conv_layer_model,
+        "conv_layer_var_input_ch_exp",
+        "NeuronProcessingUnit",
+    ),  # 4
+    (
+        conv_layer_var_output_ch_exp,
+        get_conv_layer_model,
+        "conv_layer_var_output_ch_exp",
+        "NeuronProcessingUnit",
+    ),  # 5
+    (
+        conv_layer_var_iq_exp,
+        get_conv_layer_model,
+        "conv_layer_var_iq_exp",
+        "NeuronProcessingUnit",
+    ),  # 6
+    (
+        conv_layer_var_wq_exp,
+        get_conv_layer_model,
+        "conv_layer_var_wq_exp",
+        "NeuronProcessingUnit",
+    ),  # 7
+    (
+        maxpool_layer_var_input_size_exp,
+        get_maxpool_layer_model,
+        "maxpool_layer_var_input_size_exp",
+        "OrderProcessingUnit",
+    ),  # 8
+    (
+        maxpool_layer_var_channels_exp,
+        get_maxpool_layer_model,
+        "maxpool_layer_var_channels_exp",
+        "OrderProcessingUnit",
+    ),  # 9
+    (
+        maxpool_layer_var_kernel_size_exp,
+        get_maxpool_layer_model,
+        "maxpool_layer_var_kernel_size_exp",
+        "OrderProcessingUnit",
+    ),  # 10
+    (
+        maxpool_layer_var_iq_exp,
+        get_maxpool_layer_model,
+        "maxpool_layer_var_iq_exp",
+        "OrderProcessingUnit",
+    ),  # 11
+    (
+        cnn_mnist_model_var_bitwidth_exp,
+        train_quantized_mnist_model,
+        "cnn_mnist_model_var_bitwidth_exp",
+        "ProcessingPipeline",
+    ),  # 12
+    (
+        cnn_mnist_model_var_prune_rate_exp,
+        train_quantized_mnist_model,
+        "cnn_mnist_model_var_prune_rate_exp",
+        "ProcessingPipeline",
+    ),  # 13
 )
 current_exp = 0
 
@@ -187,9 +253,11 @@ def get_work_dir(keys, values, base):
             return f"{key}{val_str}"
         else:
             return f"{key}{vals}"
+
     str_list = list(map(lambda kv: to_string(kv), zip(keys, values)))
     specific_dir = functools.reduce(lambda a, b: a + "_" + b, str_list)
     return SCRIPT_DIR + base + specific_dir
+
 
 def _brevitas_to_qonnx(brevitas_model, input_shape):
     qonnx_proto = export_qonnx(brevitas_model, torch.randn(input_shape))
@@ -197,7 +265,10 @@ def _brevitas_to_qonnx(brevitas_model, input_shape):
     qonnx_model = cleanup_model(qonnx_model)
     return qonnx_model
 
+
 lock = multiprocessing.Lock()
+
+
 def run_test(*args):
     global current_exp, lock, SCRIPT_DIR
     exp_dict = EXPERIMENTS[current_exp][0]
@@ -209,7 +280,7 @@ def run_test(*args):
         os.makedirs(work_dir)
     brevitas_model, test_data, acc = model_gen(*args[0])
     if acc is not None:
-        with open(f"{work_dir}/acc.log", 'w') as f:
+        with open(f"{work_dir}/acc.log", "w") as f:
             f.write(f"Final accuracy-{args[0]}:\n")
             f.write(f"{str(acc)}\n")
     lock.acquire()
@@ -220,43 +291,38 @@ def run_test(*args):
     onnx.save(qonnx_model.model, f"{work_dir}/qonnx/model.onnx")
     if not os.path.exists(f"{work_dir}/c4ml/utilization.rpt"):
         print(f"Starting {work_dir}/c4ml run!")
-        test_chisel4ml(qonnx_model, test_data, f"{work_dir}/c4ml/", SCRIPT_DIR, top_name)
+        test_chisel4ml(
+            qonnx_model, test_data, f"{work_dir}/c4ml/", SCRIPT_DIR, top_name
+        )
     else:
         print(f"Skipping {work_dir}/c4ml run. Already Exists!")
     if not os.path.exists(f"{work_dir}/hls4ml/utilization.rpt"):
         print(f"Starting {work_dir}/hls4ml run!")
         test_hls4ml(qonnx_model, f"{work_dir}/hls4ml/", SCRIPT_DIR)
     else:
-        print(f"Skipping {work_dir}/hls4ml run. Already Exists!") 
+        print(f"Skipping {work_dir}/hls4ml run. Already Exists!")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog='c4ml_test_runs')
+    parser = argparse.ArgumentParser(prog="c4ml_test_runs")
     parser.add_argument(
-        '--num_workers',
-        '-n',
-        type=int,
-        default=2,
-        help='Number of parallel workers'
+        "--num_workers", "-n", type=int, default=2, help="Number of parallel workers"
     )
     parser.add_argument(
-        '--experiment_num',
-        '-exp',
+        "--experiment_num",
+        "-exp",
         type=int,
         default=-1,
-        help='If set, run only the given experiment (else run all).'
+        help="If set, run only the given experiment (else run all).",
     )
     parser.add_argument(
-        '--experiment_name',
-        '-name',
-        default="",
-        help='Name of the experiment to run.'
+        "--experiment_name", "-name", default="", help="Name of the experiment to run."
     )
     parser.add_argument(
-        '--debug',
-        '-d',
-        action='store_true',
-        help='Run in debug mode, where only one process is active.'
+        "--debug",
+        "-d",
+        action="store_true",
+        help="Run in debug mode, where only one process is active.",
     )
     args = parser.parse_args()
     print("------------------------------------------------------")
@@ -271,18 +337,21 @@ if __name__ == "__main__":
     if args.experiment_num >= 0:
         EXPERIMENTS = (EXPERIMENTS[args.experiment_num],)
 
-    
     # Make sure vitis_hls not in path (so we can intercept it and profile it)
-    if not "VITIS_HLS_DIR" in os.environ:
-        raise SystemError("Missing enviromental variable VITIS_HLS_DIR. Please define "
-                          "it as the path to the Vitis installation.")
-    if not SCRIPT_DIR in sys.path:
+    if "VITIS_HLS_DIR" not in os.environ:
+        raise SystemError(
+            "Missing enviromental variable VITIS_HLS_DIR. Please define "
+            "it as the path to the Vitis installation."
+        )
+    if SCRIPT_DIR not in sys.path:
         raise SystemError("Base directory not in PATH. Please add it to PATH.")
-    if os.environ['VITIS_HLS_DIR'] in sys.path:
-        raise SystemError("vitis_hls found in path. This prevents this script from "
-                          "intercepting the command and adding memory profiling. "
-                          "Please remove vitis_hls from system path.")
-    os.environ['PYTHONPATH'] = SCRIPT_DIR
+    if os.environ["VITIS_HLS_DIR"] in sys.path:
+        raise SystemError(
+            "vitis_hls found in path. This prevents this script from "
+            "intercepting the command and adding memory profiling. "
+            "Please remove vitis_hls from system path."
+        )
+    os.environ["PYTHONPATH"] = SCRIPT_DIR
     for exp in EXPERIMENTS:
         print(f"Running {exp[2]}")
         feat_list = list(itertools.product(*exp[0].values()))

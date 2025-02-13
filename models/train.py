@@ -6,64 +6,67 @@ from models.mnist_data import get_data_loaders
 
 
 def print_sparsity_by_layer(model):
-	print(
-		"Sparsity in conv0.conv.weight: {:.2f}%".format(
-			100. * float(torch.sum(model.conv0.conv.weight == 0))
-			/ float(model.conv0.conv.weight.nelement())
-		)
-	)
-	print(
-		"Sparsity in conv1.conv.weight: {:.2f}%".format(
-			100. * float(torch.sum(model.conv1.conv.weight == 0))
-			/ float(model.conv1.conv.weight.nelement())
-		)
-	)
-	print(
-		"Sparsity in dense0.dense.weight: {:.2f}%".format(
-			100. * float(torch.sum(model.dense0.dense.weight == 0))
-			/ float(model.dense0.dense.weight.nelement())
-		)
-	)
-	print(
-		"Sparsity in dense1.dense.weight: {:.2f}%".format(
-			100. * float(torch.sum(model.dense1.dense.weight == 0))
-			/ float(model.dense1.dense.weight.nelement())
-		)
-	)
-	print(
-		"Global sparsity: {:.2f}%".format(
-			100. * float(
-				torch.sum(model.conv0.conv.weight == 0)
-				+ torch.sum(model.conv1.conv.weight == 0)
-				+ torch.sum(model.dense0.dense.weight == 0)
-				+ torch.sum(model.dense1.dense.weight == 0)
-			)
-			/ float(
-				model.conv0.conv.weight.nelement()
-				+ model.conv1.conv.weight.nelement()
-				+ model.dense0.dense.weight.nelement()
-				+ model.dense1.dense.weight.nelement()
-			)
-		)
-	)
+    print(
+        "Sparsity in conv0.conv.weight: {:.2f}%".format(
+            100.0
+            * float(torch.sum(model.conv0.conv.weight == 0))
+            / float(model.conv0.conv.weight.nelement())
+        )
+    )
+    print(
+        "Sparsity in conv1.conv.weight: {:.2f}%".format(
+            100.0
+            * float(torch.sum(model.conv1.conv.weight == 0))
+            / float(model.conv1.conv.weight.nelement())
+        )
+    )
+    print(
+        "Sparsity in dense0.dense.weight: {:.2f}%".format(
+            100.0
+            * float(torch.sum(model.dense0.dense.weight == 0))
+            / float(model.dense0.dense.weight.nelement())
+        )
+    )
+    print(
+        "Sparsity in dense1.dense.weight: {:.2f}%".format(
+            100.0
+            * float(torch.sum(model.dense1.dense.weight == 0))
+            / float(model.dense1.dense.weight.nelement())
+        )
+    )
+    print(
+        "Global sparsity: {:.2f}%".format(
+            100.0
+            * float(
+                torch.sum(model.conv0.conv.weight == 0)
+                + torch.sum(model.conv1.conv.weight == 0)
+                + torch.sum(model.dense0.dense.weight == 0)
+                + torch.sum(model.dense1.dense.weight == 0)
+            )
+            / float(
+                model.conv0.conv.weight.nelement()
+                + model.conv1.conv.weight.nelement()
+                + model.dense0.dense.weight.nelement()
+                + model.dense1.dense.weight.nelement()
+            )
+        )
+    )
 
 
 def prune_model_global_unstructured(model, prune_rate, print_sparsity=False):
     parameters_to_prune = (
-        (model.conv0.conv, 'weight'),
-        (model.conv1.conv, 'weight'),
-        (model.dense0.dense, 'weight'),
-        (model.dense1.dense, 'weight'),
+        (model.conv0.conv, "weight"),
+        (model.conv1.conv, "weight"),
+        (model.dense0.dense, "weight"),
+        (model.dense1.dense, "weight"),
     )
     prune.global_unstructured(
-        parameters_to_prune, 
-        pruning_method=prune.L1Unstructured,
-        amount=prune_rate
+        parameters_to_prune, pruning_method=prune.L1Unstructured, amount=prune_rate
     )
 
     # Remove prunning re-parameterization
     for module, _ in parameters_to_prune:
-        prune.remove(module, 'weight')
+        prune.remove(module, "weight")
 
 
 def train_model(model, train_loader, criterion, optimizer, epochs, device, prune_rate):
@@ -75,7 +78,7 @@ def train_model(model, train_loader, criterion, optimizer, epochs, device, prune
             inputs = inputs.to(device)
             inputs = inputs * 255
             labels = labels.to(device)
-            
+
             # zero the parameter gradients
             optimizer.zero_grad()
 
@@ -85,15 +88,17 @@ def train_model(model, train_loader, criterion, optimizer, epochs, device, prune
             loss.backward()
 
             optimizer.step()
-            
+
             prune_model_global_unstructured(model, prune_rate)
 
             # print statistics
             running_loss += loss.item()
             if i % 50 == 49:
-                print(f'[{epoch + 1}/{epochs}, {i + 1:3d}/{len(train_loader)}] - loss: {running_loss / 2000:.5f}')
+                print(
+                    f"[{epoch + 1}/{epochs}, {i + 1:3d}/{len(train_loader)}] - loss: {running_loss / 2000:.5f}"
+                )
                 running_loss = 0.0
-    print('Finished Training')
+    print("Finished Training")
 
 
 def eval_model(model, test_loader, device):
@@ -113,13 +118,13 @@ def eval_model(model, test_loader, device):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
     accuracy = float(correct) / total
-    print(f'Accuracy of the network on the 10000 test images: {100 * accuracy} %')
+    print(f"Accuracy of the network on the 10000 test images: {100 * accuracy} %")
     return accuracy
 
 
-def merge_batchnorm(act, bn, ltype='conv'):
+def merge_batchnorm(act, bn, ltype="conv"):
     if ltype == "conv":
-        w_act = act.weight.clone().view(act.out_channels, - 1)
+        w_act = act.weight.clone().view(act.out_channels, -1)
     else:
         w_act = act.weight.clone()
     inv = bn.weight / torch.sqrt(bn.running_var + bn.eps)
@@ -147,7 +152,7 @@ def train_quantized_mnist_model(bitwidth, prune_rate=0.0):
         optimizer=torch.optim.Adam(model.parameters(), lr=0.001),
         epochs=5,
         device=device,
-        prune_rate=prune_rate
+        prune_rate=prune_rate,
     )
     print_sparsity_by_layer(model)
 
@@ -155,13 +160,17 @@ def train_quantized_mnist_model(bitwidth, prune_rate=0.0):
     eval_model(model, test_loader, device)
     print("MERGING BATCHNORM TO ACTIVE LAYERS")
     model.eval()
-    model_nobn.load_state_dict({k: v for k, v in model.state_dict().items() if 'bn' not in k})
+    model_nobn.load_state_dict(
+        {k: v for k, v in model.state_dict().items() if "bn" not in k}
+    )
     for layer in (model.conv0, model.conv1):
         merge_batchnorm(layer.conv, layer.bn)
     for layer in (model.dense0, model.dense1):
         merge_batchnorm(layer.dense, layer.bn)
-    model_nobn.load_state_dict({k: v for k, v in model.state_dict().items() if 'bn' not in k}, strict=False)
-    print('BN layers fused.')
+    model_nobn.load_state_dict(
+        {k: v for k, v in model.state_dict().items() if "bn" not in k}, strict=False
+    )
+    print("BN layers fused.")
     print("RETRAINING FUSED MODEL")
     train_model(
         model=model_nobn,
@@ -170,7 +179,7 @@ def train_quantized_mnist_model(bitwidth, prune_rate=0.0):
         optimizer=torch.optim.Adam(model_nobn.parameters(), lr=0.001),
         epochs=5,
         device=device,
-        prune_rate=prune_rate
+        prune_rate=prune_rate,
     )
     print_sparsity_by_layer(model)
     print(f"FINAL ACCURACY {bitwidth} (NO BN):")

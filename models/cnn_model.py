@@ -7,7 +7,9 @@ from models.quantizers import IntBiasQuant
 
 def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
     class ConvBlock(Module):
-        def __init__(self, input_ch, output_ch, conv_kernel_size=3, maxpool_kernel_size=2):
+        def __init__(
+            self, input_ch, output_ch, conv_kernel_size=3, maxpool_kernel_size=2
+        ):
             super(ConvBlock, self).__init__()
             self.conv = qnn.QuantConv2d(
                 in_channels=input_ch,
@@ -25,13 +27,17 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             )
             if use_bn:
                 self.bn = torch.nn.BatchNorm2d(output_ch)
-            self.relu = qnn.QuantReLU(bit_width=bitwidth, scaling_impl_type='const', scaling_init=(2**bitwidth) - 1)
+            self.relu = qnn.QuantReLU(
+                bit_width=bitwidth,
+                scaling_impl_type="const",
+                scaling_init=(2**bitwidth) - 1,
+            )
             self.maxpool = torch.nn.MaxPool2d(kernel_size=maxpool_kernel_size)
             self.quant = qnn.QuantIdentity(
                 bit_width=bitwidth,
-                scaling_impl_type='const',
-                scaling_init=2**(bitwidth) - 1,
-                signed=False  # ReLU
+                scaling_impl_type="const",
+                scaling_init=2 ** (bitwidth) - 1,
+                signed=False,  # ReLU
             )
 
         def forward(self, x):
@@ -59,7 +65,11 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             )
             if use_bn:
                 self.bn = torch.nn.BatchNorm1d(out_features)
-            self.relu = qnn.QuantReLU(bit_width=bitwidth, scaling_impl_type='const', scaling_init=(2**bitwidth) - 1)
+            self.relu = qnn.QuantReLU(
+                bit_width=bitwidth,
+                scaling_impl_type="const",
+                scaling_init=(2**bitwidth) - 1,
+            )
 
         def forward(self, x):
             x = self.dense(x)
@@ -74,13 +84,15 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             self.ishape = (1, 1, 28, 28)
             self.quant_inp = qnn.QuantIdentity(
                 bit_width=input_bitwidth,
-                scaling_impl_type='const',
-                scaling_init=2**(input_bitwidth) - 1,
-                signed=False
+                scaling_impl_type="const",
+                scaling_init=2 ** (input_bitwidth) - 1,
+                signed=False,
             )
             self.conv0 = ConvBlock(input_ch=1, output_ch=8)  # 1 * 28 * 28
             self.conv1 = ConvBlock(input_ch=8, output_ch=8)  # 8 * 13 * 13
-            self.dense0 = DenseBlock(in_features=8 * 5 * 5, out_features=256)  # 16 * 5 * 5
+            self.dense0 = DenseBlock(
+                in_features=8 * 5 * 5, out_features=256
+            )  # 16 * 5 * 5
             self.dense1 = DenseBlock(in_features=256, out_features=10)
 
         def forward(self, x):
