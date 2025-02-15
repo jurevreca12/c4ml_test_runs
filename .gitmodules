@@ -1,0 +1,6 @@
+[submodule "finn"]
+	path = finn
+	url = https://github.com/Xilinx/finn
+[submodule "oh-my-xilinx"]
+	path = oh-my-xilinx
+	url = https://github.com/maltanar/oh-my-xilinx

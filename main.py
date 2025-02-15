@@ -14,7 +14,6 @@ from brevitas.export import export_qonnx
 from qonnx.util.cleanup import cleanup_model
 from qonnx.core.modelwrapper import ModelWrapper
 import argparse
-import multiprocessing
 import torch
 import onnx
 

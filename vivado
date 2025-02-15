@@ -1,4 +1,0 @@
-#!/bin/bash
-source $VITIS_HLS_DIR/settings64.sh
-echo "RUNNING MEMORY PROFILLER on vivado $@"
-LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 python3 -m memory_profiler vivado $@

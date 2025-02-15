@@ -6,9 +6,10 @@ import json
 
 
 class ProcessContainer:
-    def __init__(self, command=None, subp=None):
+    def __init__(self, pid=None):
         self.command = command
         self.p = subp
+        self.pid = pid
         self.max_vms_memory = 0
         self.max_rss_memory = 0
         if self.p is None:
@@ -22,13 +23,14 @@ class ProcessContainer:
         if self.p is None:
             self.p = subprocess.Popen(self.command, shell=False)
             self.execution_state = True
+            self.pid = self.p.pid
 
     def poll(self):
         if not self.check_execution_state():
             return False
 
         try:
-            pp = psutil.Process(self.p.pid)
+            pp = psutil.Process(self.pid)
 
             # obtain a list of the subprocess and all its descendants
             descendants = list(pp.children(recursive=True))
@@ -59,7 +61,7 @@ class ProcessContainer:
         return self.check_execution_state()
 
     def is_running(self):
-        return psutil.pid_exists(self.p.pid) and self.p.poll() is None
+        return psutil.pid_exists(self.pid)
 
     def check_execution_state(self):
         if not self.execution_state:
@@ -70,9 +72,8 @@ class ProcessContainer:
         return False
 
     def close(self, kill=False):
-
         try:
-            pp = psutil.Process(self.p.pid)
+            pp = psutil.Process(self.pid)
             if kill:
                 pp.kill()
             else:

@@ -28,8 +28,19 @@ RUN apt-get update && \
     python3-setuptools-scm \
     python3-venv \
     python3-tk \
-    verilator
+    default-jre \
+    cmake
 RUN locale-gen "en_US.UTF-8"
+
+# install Verilator from source to get the right version
+RUN apt-get install -y git perl make autoconf g++ flex bison ccache libgoogle-perftools-dev numactl perl-doc libfl2 libfl-dev zlib1g zlib1g-dev
+RUN git clone https://github.com/verilator/verilator
+RUN cd verilator && \
+    git checkout v4.224 && \
+    autoconf && \
+    ./configure && \
+    make -j4 && \
+    make install
 
 COPY requirements.txt /tmp/requirements.txt
 SHELL ["/bin/bash", "-c"] 
@@ -38,8 +49,8 @@ RUN python -m venv /venv/ && \
     source /venv/bin/activate && \
     pip install -r /tmp/requirements.txt && \
     rm /tmp/requirements.txt
-ENV PATH="/venv/bin:/workspace:$PATH"
-env PYTHONPATH="/workspace"
 RUN wget -P /c4ml/ https://github.com/cs-jsi/chisel4ml/releases/download/0.3.6/chisel4ml.jar
-RUN apt install default-jre cmake -y
+ENV PATH="/venv/bin:/workspace:$PATH"
+ENV PYTHONPATH="/workspace"
 ENV LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+

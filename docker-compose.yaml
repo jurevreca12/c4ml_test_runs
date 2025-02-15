@@ -2,8 +2,12 @@ services:
         c4ml_test_runs:
                 build: .
                 environment:
-                        - VITIS_HLS_DIR=${VITIS_HLS_DIR}
+                        - VITIS_HLS_DIR=${XILINX_DIR}/Vitis/${XILINX_VERSION}
+                        - VIVADO_PATH=${XILINX_DIR}/Vivado/${XILINX_VERSION}
                         - LM_LICENSE_FILE=${LM_LICENSE_FILE}
+                        - FINN_ROOT=/workspace/finn
+                        - OHMYXILINX=/workspace/oh-my-xilinx
+                        - FINN_BUILD_DIR=/finn_build_dir
                 volumes:
                         - ${XILINX_DIR}:${XILINX_DIR}
                         - .:/workspace
