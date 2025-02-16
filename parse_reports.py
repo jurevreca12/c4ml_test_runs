@@ -17,14 +17,10 @@ def parse_reports(work_dir, util_rpt_file="utilization.rpt"):
     _, drow = next(df.iterrows())
     design_data = drow.to_dict()
 
-    with open(f"{work_dir}/memory_info.json") as f:
-        mem_info = json.load(f)
-
     reports = {
         "util": util_data,
         "design": design_data,
         "info_rpt": info_rpt,
-        "mem_info": mem_info,
     }
 
     if os.path.exists(f"{work_dir}/memory_info_c4ml.json"):
@@ -32,3 +28,21 @@ def parse_reports(work_dir, util_rpt_file="utilization.rpt"):
             mem_info_c4ml = json.load(f)
         reports["mem_info_c4ml"] = mem_info_c4ml
     return reports
+
+
+def parse_finn_reports(work_dir):
+    with open(f"{work_dir}/time_per_step.json", 'r') as f:
+        time_per_step = json.load(f)
+    with open(f"{work_dir}/info.json", 'r') as f:
+        info_rpt = json.load(f)
+    with open(f"{work_dir}/report/rtlsim_performance.json", 'r') as f:
+        rtlsim_rpt = json.load(f)
+    with open(f"{work_dir}/report/ooc_synth_and_timing.json", 'r') as f:
+        synth_rpt = json.load(f)
+
+    return {
+        'time_per_step': time_per_step,
+        'info_rpt': info_rpt,
+        'rtlsim_performance': rtlsim_rpt,
+        'ooc_synth_and_timing': synth_rpt
+    }

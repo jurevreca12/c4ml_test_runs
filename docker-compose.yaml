@@ -5,14 +5,16 @@ services:
                         - VITIS_HLS_DIR=${XILINX_DIR}/Vitis/${XILINX_VERSION}
                         - VIVADO_PATH=${XILINX_DIR}/Vivado/${XILINX_VERSION}
                         - LM_LICENSE_FILE=${LM_LICENSE_FILE}
+                        - LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 
                         - FINN_ROOT=/workspace/finn
                         - OHMYXILINX=/workspace/oh-my-xilinx
                         - FINN_BUILD_DIR=/finn_build_dir
                 volumes:
                         - ${XILINX_DIR}:${XILINX_DIR}
                         - .:/workspace
+                        - ./finn-hlslib:/workspace/finn/deps/finn-hlslib
                 ports:
-                        - "5280:5280"
+                        - "5280:5280"  # license server
                 stdin_open: true
                 tty: true
                 working_dir: /workspace

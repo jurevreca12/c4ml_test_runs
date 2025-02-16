@@ -285,6 +285,7 @@ def run_test(*args):
         os.makedirs(f"{work_dir}/qonnx")
     qonnx_model_file = f"{work_dir}/qonnx/model.onnx"
     onnx.save(qonnx_model.model, qonnx_model_file)
+    # CHISEL4ML
     if not os.path.exists(f"{work_dir}/c4ml/utilization.rpt"):
         print(f"Starting {work_dir}/c4ml run!")
         test_chisel4ml(
@@ -292,11 +293,15 @@ def run_test(*args):
         )
     else:
         print(f"Skipping {work_dir}/c4ml run. Already Exists!")
+
+    # HLS4ML
     if not os.path.exists(f"{work_dir}/hls4ml/vivado_synth.rpt"):
         print(f"Starting {work_dir}/hls4ml run!")
         test_hls4ml(qonnx_model, f"{work_dir}/hls4ml/", SCRIPT_DIR)
     else:
         print(f"Skipping {work_dir}/hls4ml run. Already Exists!")
+
+    # FINN
     if not os.path.exists(f"{work_dir}/finn/report/rtlsim_performance.json"):
         print(f"Starting {work_dir}/finn run!")
         test_finn(qonnx_model_file, f"{work_dir}/finn/", SCRIPT_DIR)

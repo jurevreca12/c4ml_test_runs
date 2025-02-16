@@ -11,11 +11,6 @@ from memory_profiler import ProcessContainer
 from threading import Thread
 
 
-def mem_profiling_thread_fn(proc_cont):
-    while proc_cont.poll():
-        time.sleep(0.5)
-
-
 def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
     curr_dir = os.getcwd()
     if not os.path.exists(work_dir):
@@ -28,9 +23,8 @@ def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
         minimize="delay",
     )
     c4ml_server, c4ml_subp = create_server("/c4ml/chisel4ml.jar")
-    mem_prof = ProcessContainer(subp=c4ml_subp)
-    mem_prof_thread = Thread(target=mem_profiling_thread_fn, args=(mem_prof,))
-    mem_prof_thread.start()
+    mem_prof = ProcessContainer(pid=c4ml_subp.pid)
+    thread_handle = mem_prof.profile()
     circuit = generate.circuit(
         accelerators,
         lbir_model,
@@ -48,15 +42,16 @@ def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
         assert np.array_equal(qonnx_res.flatten(), hw_res.flatten())
     simulation_time = time.perf_counter()
     circuit.package(work_dir)
+    mem_prof.stop()
+    thread_handle.join()
     c4ml_server.stop()
     c4ml_subp.terminate()
-    mem_prof_thread.join()
     c4ml_mem_dict = {
         "max_vms_memory": mem_prof.max_vms_memory,
         "max_rss_memory": mem_prof.max_rss_memory,
-    }
-    with open(f"{work_dir}/memory_info_c4ml.json", "w") as f:
-        json.dump(c4ml_mem_dict, f)
+    } 
+    mem_prof2 = ProcessContainer(pid=os.getpid())
+    thread_handle2 = mem_prof2.profile()
     commands = [
         "vivado",
         "-mode",
@@ -74,7 +69,15 @@ def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
         cp = subprocess.run(commands, stdout=log_file, stderr=log_file)
     synthesis_time = time.perf_counter()
     assert cp.returncode == 0
+    mem_prof2.stop()
+    thread_handle2.join()
     info_dict = {}
+    info_dict["compile_max_vms_memory"] = mem_prof.max_vms_memory
+    info_dict["compile_max_rss_memory"] = mem_prof.max_rss_memory
+    info_dict["vivado_max_rss_memory"] = mem_prof2.max_rss_memory
+    info_dict["vivado_max_vms_memory"] = mem_prof2.max_vms_memory
+    info_dict["total_max_rss_memory"] = max(mem_prof.max_rss_memory, mem_prof2.max_rss_memory)
+    info_dict["total_max_vms_memory"] = max(mem_prof.max_vms_memory, mem_prof2.max_vms_memory)
     info_dict["compile_duration"] = compile_time - start_time
     info_dict["simulation_duration"] = simulation_time - compile_time
     info_dict["synthesis_duration"] = synthesis_time - simulation_time
@@ -82,8 +85,6 @@ def test_chisel4ml(qonnx_model, test_data, work_dir, base_dir, top_name):
     info_dict["exact_latency"] = (
         len(lbir_model.layers) + 1
     )  # a stage for every lbir layer
-    info_dict["max_vms_memory"] = mem_prof.max_vms_memory
-    info_dict["max_rss_memory"] = mem_prof.max_rss_memory
     info_dict["tool"] = "chisel4ml"
     with open(f"{work_dir}/info.json", "w") as info_file:
         json.dump(info_dict, info_file)

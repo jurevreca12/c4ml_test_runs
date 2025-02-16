@@ -4,3 +4,6 @@
 [submodule "oh-my-xilinx"]
 	path = oh-my-xilinx
 	url = https://github.com/maltanar/oh-my-xilinx
+[submodule "finn-hlslib"]
+	path = finn-hlslib
+	url = https://github.com/Xilinx/finn-hlslib

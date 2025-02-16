@@ -5,9 +5,11 @@ import qonnx
 from qonnx.transformation.channels_last import ConvertToChannelsLastAndClean
 from qonnx.transformation.gemm_to_matmul import GemmToMatMul
 import hls4ml
-
+from memory_profiler import ProcessContainer
 
 def test_hls4ml(qonnx_model, work_dir, base_dir):
+    mem_prof = ProcessContainer(pid=os.getpid())
+    thread_handle = mem_prof.profile()
     starttime = time.perf_counter()
     qonnx_model = qonnx.util.cleanup.cleanup_model(qonnx_model)
     qonnx_model = qonnx_model.transform(ConvertToChannelsLastAndClean())
@@ -37,7 +39,11 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
     os.system(f"cp {base_dir}/synth_hls.tcl {work_dir}/vivado_synth.tcl")
     ret = hls_model.build(csim=False, synth=True, cosim=True, vsynth=True)
     duration = time.perf_counter() - starttime
+    mem_prof.stop()
+    thread_handle.join()
     ret["total_duration"] = duration
+    ret['total_max_vms_memory'] = mem_prof.max_vms_memory
+    ret['total_max_rss_memory'] = mem_prof.max_rss_memory
     ret["tool"] = "hls4ml"
     with open(f"{work_dir}/info.json", "w") as info_file:
         json.dump(ret, info_file)
