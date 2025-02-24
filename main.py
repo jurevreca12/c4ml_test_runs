@@ -285,6 +285,7 @@ def run_test(*args):
         os.makedirs(f"{work_dir}/qonnx")
     qonnx_model_file = f"{work_dir}/qonnx/model.onnx"
     onnx.save(qonnx_model.model, qonnx_model_file)
+    
     # CHISEL4ML
     if not os.path.exists(f"{work_dir}/c4ml/utilization.rpt"):
         print(f"Starting {work_dir}/c4ml run!")
@@ -302,11 +303,11 @@ def run_test(*args):
         print(f"Skipping {work_dir}/hls4ml run. Already Exists!")
 
     # FINN
-    if not os.path.exists(f"{work_dir}/finn/report/rtlsim_performance.json"):
+    if not os.path.exists(f"{work_dir}/finn/info.json"):
         print(f"Starting {work_dir}/finn run!")
         test_finn(qonnx_model_file, f"{work_dir}/finn/", SCRIPT_DIR)
     else:
-        print(f"Skipping {work_dir}/hls4ml run. Already Exists!")
+        print(f"Skipping {work_dir}/finn run. Already Exists!")
 
 
 if __name__ == "__main__":
