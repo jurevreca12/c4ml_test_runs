@@ -10,13 +10,17 @@ from qonnx.core.modelwrapper import ModelWrapper
 from pathlib import Path
 from qonnx.transformation.base import Transformation
 from qonnx.transformation.general import GiveUniqueNodeNames
+import onnx
 
 
 def onnx_set_attr(node, attr_name: str, val) -> None:
     for attr in node.attribute:
         if attr.name == attr_name:
             attr.i = val
-            break
+            return
+    nattr = onnx.helper.make_attribute(attr_name, val)
+    node.attribute.append(nattr)    
+
 
 def onnx_get_attr(node, attr_name: str):
     for attr in node.attribute:
@@ -32,6 +36,7 @@ def step_set_max_parallelization(model: ModelWrapper, cfg: DataflowBuildConfig):
         mw = onnx_get_attr(node, 'MW')
         onnx_set_attr(node, 'PE',  mh) 
         onnx_set_attr(node, 'SIMD',  mw)
+        onnx_set_attr(node, 'mem_mode',  "internal_embedded")
     return model
 
 _steps_custom = [
