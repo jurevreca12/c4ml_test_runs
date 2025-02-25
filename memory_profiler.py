@@ -35,7 +35,10 @@ class ProcessContainer:
         # calculate and sum up the memory of the subprocess
         # and all its descendants
         for descendant in descendants:
-            mem_info = descendant.memory_info()
+            try:
+                mem_info = descendant.memory_info()
+            except:
+                mem_info = [0, 0]
             rss_memory += mem_info[0]
             vms_memory += mem_info[1]
         self.max_vms_memory = max(self.max_vms_memory, vms_memory)
