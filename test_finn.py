@@ -25,7 +25,7 @@ from qonnx.transformation.infer_datatypes import InferDataTypes
 import finn.transformation.fpgadataflow.convert_to_hw_layers as to_hw
 from qonnx.transformation.infer_shapes import InferShapes
 from qonnx.transformation.base import Transformation
-
+import numpy as np
 
 def step_custom_lower_convs(model: ModelWrapper, cfg: DataflowBuildConfig):
     model = model.transform(LowerConvsToMatMul())
