@@ -12,6 +12,44 @@ from qonnx.transformation.base import Transformation
 from qonnx.transformation.general import GiveUniqueNodeNames
 import onnx
 
+import finn.transformation.streamline.absorb as absorb
+from qonnx.transformation.lower_convs_to_matmul import LowerConvsToMatMul
+from qonnx.transformation.remove import RemoveIdentityOps
+from qonnx.transformation.general import (
+    GiveReadableTensorNames,
+    GiveUniqueNodeNames,
+    ApplyConfig,
+)
+from qonnx.transformation.infer_data_layouts import InferDataLayouts
+from qonnx.transformation.infer_datatypes import InferDataTypes
+import finn.transformation.fpgadataflow.convert_to_hw_layers as to_hw
+from qonnx.transformation.infer_shapes import InferShapes
+from qonnx.transformation.base import Transformation
+
+
+def step_custom_lower_convs(model: ModelWrapper, cfg: DataflowBuildConfig):
+    model = model.transform(LowerConvsToMatMul())
+    model = model.transform(absorb.AbsorbTransposeIntoMultiThreshold())
+    model = model.transform(absorb.AbsorbConsecutiveTransposes())
+    model = model.transform(GiveUniqueNodeNames())
+    model = model.transform(GiveReadableTensorNames())
+    model = model.transform(InferDataTypes())
+    model = model.transform(InferDataLayouts())
+    return model
+
+
+def step_custom_convert_to_hw_layers(model: ModelWrapper, cfg: DataflowBuildConfig):
+    model = model.transform(to_hw.InferPool())
+    model = model.transform(to_hw.InferConvInpGen())
+    model = model.transform(to_hw.InferVectorVectorActivation())
+    model = model.transform(to_hw.InferQuantizedMatrixVectorActivation())
+    model = model.transform(to_hw.InferChannelwiseLinearLayer())
+    model = model.transform(to_hw.InferLabelSelectLayer())
+    model = model.transform(InferShapes())
+    model = model.transform(GiveUniqueNodeNames())
+    model = model.transform(GiveReadableTensorNames())
+    model = model.transform(PreferedImplStyle())
+    return model
 
 def onnx_set_attr(node, attr_name: str, val) -> None:
     for attr in node.attribute:
@@ -25,7 +63,27 @@ def onnx_set_attr(node, attr_name: str, val) -> None:
 def onnx_get_attr(node, attr_name: str):
     for attr in node.attribute:
         if attr.name == attr_name:
-            return attr.i
+            if attr.type == 2:  # INT
+                return attr.i
+            elif attr.type == 7:  # INTS
+                return attr.ints
+            else:
+                raise ValueError
+    raise ValueError
+
+
+class PreferedImplStyle(Transformation):
+    "Sets the attribute preferred_impl_style to hls. See SpecializeLayers transformation for context."
+    
+    def __init__(self, style="hls"):
+        super().__init__()
+        self.style = style
+
+    def apply(self, model):
+        for node in model.graph.node:
+            if node.op_type in ("MVAU", 'VVAU', 'ConvolutionInputGenerator', 'StreamingDataWidthConverter'):
+                onnx_set_attr(node, 'preferred_impl_style', 'hls')
+        return model, False
 
 
 def step_set_max_parallelization(model: ModelWrapper, cfg: DataflowBuildConfig):
@@ -37,13 +95,38 @@ def step_set_max_parallelization(model: ModelWrapper, cfg: DataflowBuildConfig):
         onnx_set_attr(node, 'PE',  mh) 
         onnx_set_attr(node, 'SIMD',  mw)
         onnx_set_attr(node, 'mem_mode',  "internal_embedded")
+
+    conv_inp_hls_nodes = model.get_nodes_by_op_type('ConvolutionInputGenerator_hls')
+    for node in conv_inp_hls_nodes:
+        onnx_set_attr(node, 'SIMD', 1)  # TODO
+        onnx_set_attr(node, 'parallel_window', 1)
+  
+    vvau_hls_nodes = model.get_nodes_by_op_type('VVAU_hls')
+    for node in vvau_hls_nodes:
+        ch = onnx_get_attr(node, 'Channels')
+        kernel = onnx_get_attr(node, 'Kernel')
+        outdims = onnx_get_attr(node, 'Dim')
+        onnx_set_attr(node, 'PE', ch * np.array(outdims).prod())
+        onnx_set_attr(node, 'SIMD',  np.array(kernel).prod())
+        onnx_set_attr(node, 'mem_mode',  "internal_embedded")
+
+    # check that we did not get RTL nodes by mistake
+    mvau_rtl_nodes = model.get_nodes_by_op_type('MVAU_rtl')
+    vvau_rtl_nodes = model.get_nodes_by_op_type('VVAU_rtl')
+    conv_inp_rtl_nodes = model.get_nodes_by_op_type('ConvolutionInputGenerator_rtl')
+    sdwc_rtl_nodes = model.get_nodes_by_op_type('StreamingDataWidthConverter_rtl')
+    assert len(mvau_rtl_nodes) == 0
+    assert len(vvau_rtl_nodes) == 0
+    assert len(conv_inp_rtl_nodes) == 0
+    assert len(sdwc_rtl_nodes) == 0
     return model
 
 _steps_custom = [
     "step_qonnx_to_finn",
     "step_tidy_up",
     "step_streamline",
-    "step_convert_to_hw",
+    step_custom_lower_convs,
+    step_custom_convert_to_hw_layers,
     "step_create_dataflow_partition",
     "step_specialize_layers",
     step_set_max_parallelization,
