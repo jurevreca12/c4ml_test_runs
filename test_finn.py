@@ -98,27 +98,26 @@ def step_set_max_parallelization(model: ModelWrapper, cfg: DataflowBuildConfig):
 
     conv_inp_hls_nodes = model.get_nodes_by_op_type('ConvolutionInputGenerator_hls')
     for node in conv_inp_hls_nodes:
-        onnx_set_attr(node, 'SIMD', 1)  # TODO
+        in_ch = onnx_get_attr(node, 'IFMChannels')
+        onnx_set_attr(node, 'SIMD', in_ch) 
         onnx_set_attr(node, 'parallel_window', 1)
   
     vvau_hls_nodes = model.get_nodes_by_op_type('VVAU_hls')
     for node in vvau_hls_nodes:
         ch = onnx_get_attr(node, 'Channels')
         kernel = onnx_get_attr(node, 'Kernel')
-        outdims = onnx_get_attr(node, 'Dim')
-        onnx_set_attr(node, 'PE', ch * np.array(outdims).prod())
+        onnx_set_attr(node, 'PE', ch)
         onnx_set_attr(node, 'SIMD',  np.array(kernel).prod())
         onnx_set_attr(node, 'mem_mode',  "internal_embedded")
 
+    pool_hls_nodes = model.get_nodes_by_op_type('Pool_hls')
+    for node in pool_hls_nodes:
+        ch = onnx_get_attr(node, 'Channels')
+        onnx_set_attr(node, 'PE', ch)
+
     # check that we did not get RTL nodes by mistake
-    mvau_rtl_nodes = model.get_nodes_by_op_type('MVAU_rtl')
-    vvau_rtl_nodes = model.get_nodes_by_op_type('VVAU_rtl')
-    conv_inp_rtl_nodes = model.get_nodes_by_op_type('ConvolutionInputGenerator_rtl')
-    sdwc_rtl_nodes = model.get_nodes_by_op_type('StreamingDataWidthConverter_rtl')
-    assert len(mvau_rtl_nodes) == 0
-    assert len(vvau_rtl_nodes) == 0
-    assert len(conv_inp_rtl_nodes) == 0
-    assert len(sdwc_rtl_nodes) == 0
+    for node in model.graph.node:
+        assert 'rtl' not in node.op_type
     return model
 
 _steps_custom = [

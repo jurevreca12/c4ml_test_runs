@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from main import EXPERIMENTS
 from main import get_work_dir
+from main import get_exp_by_name
 from parse_reports import parse_reports
 from parse_reports import parse_finn_reports
-
+import argparse
 
 def exp_get_time_list(data, tool="chisel4ml"):
     time_list = []
@@ -317,8 +318,15 @@ def generate_report_for_exp(exp):
 
 
 if __name__ == "__main__":
-    for exp in EXPERIMENTS:
-        try:
-            generate_report_for_exp(exp)
-        except OSError:
-            print(f"Error {exp[2]} not found. Skipping.")
+    parser = argparse.ArgumentParser(prog="c4ml_test_runs")
+    parser.add_argument(
+        "--experiment_name", "-name", default="", help="Name of the experiment to run."
+    )
+    args = parser.parse_args()
+    if args.experiment_name != "":
+        exp = get_exp_by_name(args.experiment_name)
+        EXPERIMENTS_MOD = (exp,)
+    else:
+        EXPERIMENTS_MOD = EXPERIMENTS
+    for exp in EXPERIMENTS_MOD:
+        generate_report_for_exp(exp)
