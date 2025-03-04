@@ -1,8 +1,7 @@
 from vivado_report_parser import parse_metadata, parse_vivado_report
-import pandas as pd
 import json
 import os
-
+import csv
 
 def parse_reports(work_dir, util_rpt_file="utilization.rpt"):
     with open(f"{work_dir}/{util_rpt_file}", "r") as f:
@@ -13,9 +12,9 @@ def parse_reports(work_dir, util_rpt_file="utilization.rpt"):
     with open(f"{work_dir}/info.json", "r") as f:
         info_rpt = json.load(f)
 
-    df = pd.read_csv(f"{work_dir}/design_analysis.csv")
-    _, drow = next(df.iterrows())
-    design_data = drow.to_dict()
+    with open(f"{work_dir}/design_analysis.csv", 'r') as f:
+        dict_reader = csv.DictReader(f)
+        design_data = [row for row in dict_reader][0]
 
     reports = {
         "util": util_data,

@@ -56,16 +56,28 @@ def exp_get_delay_list_finn(data):
         elem_list.append(run['finn']['ooc_synth_and_timing']['Delay'])
     return elem_list
 
-
-def exp_get_troughput_list(data, tool="chisel4ml"):
-    throughput_list = []
+def exp_get_latency_cycles_list(data, tool="chisel4ml"):
+    latency_cycles_list = []
     for run in data:
         delay = float(run[tool]["design"]["Path Delay"][0:5])
         if tool == "chisel4ml":
             latency_cycles = float(run[tool]["info_rpt"]["exact_latency"])
         else:
             latency_cycles = float(run[tool]["info_rpt"]["CosimReport"]["LatencyAvg"])
-        throughput_list.append(latency_cycles * (10**9) / delay)
+        latency_cycles_list.append(latency_cycles)
+    return latency_cycles_list
+
+def exp_get_latency_cycles_list_finn(data):
+    latency_cycles_list = []
+    for run in data:
+        latency_cycles_list.append(run['finn']['rtlsim_performance']['latency_cycles'])
+    return latency_cycles_list
+
+def exp_get_troughput_list(data, tool="chisel4ml"):
+    throughput_list = []
+    for run in data:
+        path_delay_ns = float(run[tool]["design"]["Path Delay"][0:5])
+        throughput_list.append((10**9) / path_delay_ns)
     return throughput_list
 
 def exp_get_troughput_list_finn(data):
@@ -203,6 +215,15 @@ def generate_report_for_exp(exp):
         x_axis_name, var_name="tool", value_name="Throughput [Hz]"
     )
 
+    c4ml_latency_cycles_list = exp_get_latency_cycles_list(data, tool="chisel4ml")
+    hls4ml_latency_cycles_list = exp_get_latency_cycles_list(data, tool="hls4ml")
+    finn_latency_cycles_list = exp_get_latency_cycles_list_finn(data)
+    latency_cycles_arr = np.array([x_axis, c4ml_latency_cycles_list, hls4ml_latency_cycles_list, finn_latency_cycles_list])
+    latency_cycles_df = pd.DataFrame(latency_cycles_arr.T, columns=[x_axis_name, "chisel4ml", "hls4ml", "finn"])
+    melt_latency_cycles_df = latency_cycles_df.melt(
+        x_axis_name, var_name="tool", value_name="Latency Cycles"
+    )
+
     c4ml_latency_list = exp_get_total_latency_list(data, tool="chisel4ml")
     hls4ml_latency_list = exp_get_total_latency_list(data, tool="hls4ml")
     finn_latency_list = exp_get_total_latency_list_finn(data)    
@@ -300,6 +321,20 @@ def generate_report_for_exp(exp):
     )
     plt.ylim(0)
     plt.savefig(f"plots/{exp[2]}/throughput_plot.png")
+    plt.close()
+
+    sns.catplot(
+        x=x_axis_name,
+        y="Latency Cycles",
+        hue="tool",
+        data=melt_latency_cycles_df,
+        kind="point",
+        markers=["o", "s", "^"],
+        legend_out=False,
+        legend="brief",
+    )
+    plt.ylim(0)
+    plt.savefig(f"plots/{exp[2]}/latency_cycles_plot.png")
     plt.close()
 
     sns.catplot(
