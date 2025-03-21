@@ -16,6 +16,7 @@ from qonnx.core.modelwrapper import ModelWrapper
 import argparse
 import torch
 import onnx
+import numpy as np
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -275,17 +276,22 @@ def run_test(*args):
     work_dir = get_work_dir(exp_dict.keys(), args[0], base=f"/circuits/{exp_name}/")
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
-    brevitas_model, test_data, acc = model_gen(*args[0])
-    if acc is not None:
-        with open(f"{work_dir}/acc.log", "w") as f:
-            f.write(f"Final accuracy-{args[0]}:\n")
-            f.write(f"{str(acc)}\n")
-    qonnx_model = _brevitas_to_qonnx(brevitas_model, brevitas_model.ishape)
-    if not os.path.exists(f"{work_dir}/qonnx"):
-        os.makedirs(f"{work_dir}/qonnx")
     qonnx_model_file = f"{work_dir}/qonnx/model.onnx"
-    onnx.save(qonnx_model.model, qonnx_model_file)
-    
+    test_data_file = f"{work_dir}/qonnx/test_data.npy"
+    if not os.path.exists(qonnx_model_file):
+        brevitas_model, test_data, acc = model_gen(*args[0])
+        if acc is not None:
+            with open(f"{work_dir}/acc.log", "w") as f:
+                f.write(f"Final accuracy-{args[0]}:\n")
+                f.write(f"{str(acc)}\n")
+        qonnx_model = _brevitas_to_qonnx(brevitas_model, brevitas_model.ishape)
+        if not os.path.exists(f"{work_dir}/qonnx"):
+            os.makedirs(f"{work_dir}/qonnx")
+        np.save(test_data_file, test_data)
+        onnx.save(qonnx_model.model, qonnx_model_file)
+    else:
+        qonnx_model = ModelWrapper(qonnx_model_file)
+        test_data = np.load(test_data_file)
     # CHISEL4ML
     if not os.path.exists(f"{work_dir}/c4ml/utilization.rpt"):
         print(f"Starting {work_dir}/c4ml run!")
