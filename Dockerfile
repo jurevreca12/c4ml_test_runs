@@ -1,4 +1,4 @@
-FROM ubuntu:jammy-20230126
+FROM ubuntu:24.04
 
 WORKDIR /workspace
 
@@ -21,7 +21,6 @@ RUN apt-get update && \
     unzip \
     zip \
     locales \
-    lsb-core \
     python3 \
     python-is-python3 \
     python3-pip \
@@ -42,14 +41,24 @@ RUN cd verilator && \
     make -j4 && \
     make install
 
+RUN apt-get install -y software-properties-common && \
+    apt-get update && \
+    add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get install -y python3.10 python3.10-venv
+
 COPY requirements.txt /tmp/requirements.txt
 SHELL ["/bin/bash", "-c"] 
-RUN python -m pip install --upgrade pip
-RUN python -m venv /venv/ && \
+RUN python3.10 -m venv /venv/ && \
     source /venv/bin/activate && \
+    python -m pip install --upgrade pip && \
     pip install -r /tmp/requirements.txt && \
     rm /tmp/requirements.txt
 RUN wget -P /c4ml/ https://github.com/cs-jsi/chisel4ml/releases/download/0.3.6/chisel4ml.jar
+
+RUN wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb && \
+    apt install -y ./libtinfo5_6.3-2ubuntu0.1_amd64.deb && \
+    apt install -y libboost-all-dev
+
 ENV PATH="/venv/bin:/workspace:$PATH"
 ENV PYTHONPATH="/workspace"
 ENV LIBRARY_PATH=/usr/lib/x86_64-linux-gnu

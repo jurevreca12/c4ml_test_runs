@@ -139,12 +139,12 @@ maxpool_layer_var_iq_exp = {
 ##############################
 cnn_mnist_model_var_bitwidth_exp = {
     "bitwidth": (2, 3, 4, 5, 6, 7),
-    "prune_rate": (0.5,),
+    "prune_rate": (0.7,),
 }
 
 cnn_mnist_model_var_prune_rate_exp = {
     "bitwidth": (4,),
-    "prune_rate": (0.5, 0.8, 0.85, 0.9, 0.95),
+    "prune_rate": (0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
 }
 
 EXPERIMENTS = (
@@ -309,11 +309,11 @@ def run_test(*args):
         print(f"Skipping {work_dir}/hls4ml run. Already Exists!")
 
     # FINN
-    if not os.path.exists(f"{work_dir}/finn/info.json"):
-        print(f"Starting {work_dir}/finn run!")
-        test_finn(qonnx_model_file, f"{work_dir}/finn/", SCRIPT_DIR)
-    else:
-        print(f"Skipping {work_dir}/finn run. Already Exists!")
+    #if not os.path.exists(f"{work_dir}/finn/info.json"):
+    #    print(f"Starting {work_dir}/finn run!")
+    #    test_finn(qonnx_model_file, f"{work_dir}/finn/", SCRIPT_DIR)
+    #else:
+    #    print(f"Skipping {work_dir}/finn run. Already Exists!")
 
 
 if __name__ == "__main__":
