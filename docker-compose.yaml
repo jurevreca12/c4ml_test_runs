@@ -7,7 +7,7 @@ services:
                         - VITIS_HLS_DIR=${XILINX_DIR}/Vitis/${XILINX_VERSION}
                         - VIVADO_PATH=${XILINX_DIR}/Vivado/${XILINX_VERSION}
                         - LM_LICENSE_FILE=${LM_LICENSE_FILE}
-                        #- LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 
+                        - LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1 
                         - FINN_ROOT=/workspace/finn
                         - OHMYXILINX=/workspace/oh-my-xilinx
                         - FINN_BUILD_DIR=/finn_build_dir
@@ -21,4 +21,5 @@ services:
                 tty: true
                 working_dir: /workspace
                 entrypoint: /workspace/main.sh
+                #entrypoint: /bin/bash
 

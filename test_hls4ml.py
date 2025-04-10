@@ -38,6 +38,7 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
     hls_model.compile()
     os.system(f"cp {base_dir}/synth_hls.tcl {work_dir}/vivado_synth.tcl")
     ret = hls_model.build(csim=False, synth=True, cosim=True, vsynth=True)
+    assert ret is not None
     duration = time.perf_counter() - starttime
     mem_prof.stop()
     thread_handle.join()
