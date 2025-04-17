@@ -88,11 +88,11 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
                 scaling_init=2 ** (input_bitwidth) - 1,
                 signed=False,
             )
-            self.conv0 = ConvBlock(input_ch=1, output_ch=6)  # 1 * 28 * 28
-            self.conv1 = ConvBlock(input_ch=6, output_ch=6)  # 6 * 13 * 13
+            self.conv0 = ConvBlock(input_ch=1, output_ch=8)  # 1 * 28 * 28
+            self.conv1 = ConvBlock(input_ch=8, output_ch=8)  # 6 * 13 * 13
             self.dense0 = DenseBlock(
-                in_features=6 * 5 * 5, out_features=256
-            )  # 16 * 5 * 5
+                in_features=8 * 5 * 5, out_features=256
+            )  # 8 * 5 * 5
             self.dense1 = DenseBlock(in_features=256, out_features=10)
 
         def forward(self, x):

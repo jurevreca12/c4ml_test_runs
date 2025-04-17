@@ -138,7 +138,7 @@ maxpool_layer_var_iq_exp = {
 #  CNN MODEL EXPERIMENTS     #
 ##############################
 cnn_mnist_model_var_bitwidth_exp = {
-    "bitwidth": (2, 3, 4, 5, 6),
+    "bitwidth": (2, 3, 4, 5, 6, 7),
     "prune_rate": (0.7,),
 }
 
