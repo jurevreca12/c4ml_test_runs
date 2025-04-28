@@ -22,7 +22,7 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
         default_reuse_factor=1,
     )
     hls_config["Model"]["ReuseFactor"] = 1
-    hls_config["Model"]["Strategy"] = "Unrolled"
+    hls_config["Model"]["Strategy"] = "Latency"
     for key in hls_config["LayerName"].keys():
         if "conv" in key.lower():
             hls_config["LayerName"][key]["ParallelizationFactor"] = 9999999
@@ -37,6 +37,7 @@ def test_hls4ml(qonnx_model, work_dir, base_dir):
     )
     hls_model.compile()
     os.system(f"cp {base_dir}/synth_hls.tcl {work_dir}/vivado_synth.tcl")
+    os.system(f"cp {base_dir}/build_prj.tcl {work_dir}/build_prj.tcl")
     ret = hls_model.build(csim=False, synth=True, cosim=True, vsynth=True)
     assert ret is not None
     duration = time.perf_counter() - starttime
