@@ -5,61 +5,27 @@ from models.cnn_model import get_cnn_model
 from models.mnist_data import get_data_loaders
 
 
-def print_sparsity_by_layer(model):
-    print(
-        "Sparsity in conv0.conv.weight: {:.2f}%".format(
-            100.0
-            * float(torch.sum(model.conv0.conv.weight == 0))
-            / float(model.conv0.conv.weight.nelement())
-        )
-    )
-    print(
-        "Sparsity in conv1.conv.weight: {:.2f}%".format(
-            100.0
-            * float(torch.sum(model.conv1.conv.weight == 0))
-            / float(model.conv1.conv.weight.nelement())
-        )
-    )
-    print(
-        "Sparsity in dense0.dense.weight: {:.2f}%".format(
-            100.0
-            * float(torch.sum(model.dense0.dense.weight == 0))
-            / float(model.dense0.dense.weight.nelement())
-        )
-    )
-    print(
-        "Sparsity in dense1.dense.weight: {:.2f}%".format(
-            100.0
-            * float(torch.sum(model.dense1.dense.weight == 0))
-            / float(model.dense1.dense.weight.nelement())
-        )
-    )
-    print(
-        "Global sparsity: {:.2f}%".format(
-            100.0
-            * float(
-                torch.sum(model.conv0.conv.weight == 0)
-                + torch.sum(model.conv1.conv.weight == 0)
-                + torch.sum(model.dense0.dense.weight == 0)
-                + torch.sum(model.dense1.dense.weight == 0)
-            )
-            / float(
-                model.conv0.conv.weight.nelement()
-                + model.conv1.conv.weight.nelement()
-                + model.dense0.dense.weight.nelement()
-                + model.dense1.dense.weight.nelement()
-            )
-        )
-    )
+def print_sparsity(model):
+    global_zeros = 0
+    global_elems = 0
+    for module_name, module in model.named_modules():
+        if hasattr(module, 'weight'):
+            num_zeros = torch.sum(module.weight == 0)
+            num_elems = module.weight.shape.numel()
+            global_zeros += num_zeros
+            global_elems += num_elems
+            prune_ratio = 100. * (float(num_zeros) / float(num_elems))
+            print(f"Sparsity in {module_name}.weight: {prune_ratio:.2f}%.")
+
+    global_prune_ratio = 100. * (float(global_zeros) / float(global_elems))
+    print(f"Global sparsity is: {global_prune_ratio:.2f}%.")
 
 
 def prune_model_global_unstructured(model, prune_rate, print_sparsity=False):
-    parameters_to_prune = (
-        (model.conv0.conv, "weight"),
-        (model.conv1.conv, "weight"),
-        (model.dense0.dense, "weight"),
-        (model.dense1.dense, "weight"),
-    )
+    parameters_to_prune = []
+    for module in model.modules():
+        if hasattr(module, 'weight'):
+            parameters_to_prune.append((module, "weight"))
     prune.global_unstructured(
         parameters_to_prune, pruning_method=prune.L1Unstructured, amount=prune_rate
     )
@@ -76,9 +42,7 @@ def train_model(model, train_loader, criterion, optimizer, epochs, device, prune
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data
             inputs = inputs.to(device)
-            inputs = inputs * 255
             labels = labels.to(device)
-
             # zero the parameter gradients
             optimizer.zero_grad()
 
@@ -95,7 +59,8 @@ def train_model(model, train_loader, criterion, optimizer, epochs, device, prune
             running_loss += loss.item()
             if i % 50 == 49:
                 print(
-                    f"[{epoch + 1}/{epochs}, {i + 1:3d}/{len(train_loader)}] - loss: {running_loss / 2000:.5f}"
+                    f"[{epoch + 1}/{epochs}, {i + 1:3d}/{len(train_loader)}]"
+                    f" - loss: {running_loss / 2000:.5f}"
                 )
                 running_loss = 0.0
     print("Finished Training")
@@ -118,7 +83,7 @@ def eval_model(model, test_loader, device):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
     accuracy = float(correct) / total
-    print(f"Accuracy of the network on the 10000 test images: {100 * accuracy} %")
+    print(f"Accuracy of the network on the {len(test_loader)} test inputs: {100 * accuracy} %")
     return accuracy
 
 
@@ -143,6 +108,19 @@ def train_quantized_mnist_model(bitwidth, prune_rate=0.0):
     model = get_cnn_model(bitwidth=bitwidth, use_bn=True)
     model_nobn = get_cnn_model(bitwidth=bitwidth, use_bn=False)
     train_loader, test_loader = get_data_loaders(batch_size=64)
+    trained_model = train_quant_model(
+        model,
+        model_nobn,
+        train_loader,
+        test_loader,
+        bitwidth,
+        prune_rate,
+        epochs=1
+    )
+    return trained_model
+
+
+def train_quant_model(model, model_nobn, train_loader, test_loader, bitwidth, prune_rate, epochs):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     train_model(
@@ -150,11 +128,11 @@ def train_quantized_mnist_model(bitwidth, prune_rate=0.0):
         train_loader=train_loader,
         criterion=torch.nn.CrossEntropyLoss(),
         optimizer=torch.optim.Adam(model.parameters(), lr=0.001),
-        epochs=5,
+        epochs=epochs,
         device=device,
         prune_rate=prune_rate,
     )
-    print_sparsity_by_layer(model)
+    print_sparsity(model)
 
     print(f"ACCURACY WITH BN {bitwidth}:")
     eval_model(model, test_loader, device)
@@ -177,11 +155,11 @@ def train_quantized_mnist_model(bitwidth, prune_rate=0.0):
         train_loader=train_loader,
         criterion=torch.nn.CrossEntropyLoss(),
         optimizer=torch.optim.Adam(model_nobn.parameters(), lr=0.001),
-        epochs=5,
+        epochs=epochs,
         device=device,
         prune_rate=prune_rate,
     )
-    print_sparsity_by_layer(model)
+    print_sparsity(model)
     print(f"FINAL ACCURACY {bitwidth} (NO BN):")
     final_acc = eval_model(model_nobn, test_loader, device)
     # return trained model and one batch of data for testing

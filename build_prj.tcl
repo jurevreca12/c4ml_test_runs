@@ -202,7 +202,7 @@ if {$opt(cosim)} {
     remove_recursive_log_wave
     set old_pwd [pwd]
     cd ${project_name}_prj/solution1/sim/verilog/
-    exec sed -i 's/xsim --noieeewarnings/xsim --maxdeltaid 99999999 --noieeewarnings/g' run_xsim.sh 
+    exec -- sed -i "s/xsim --noieeewarnings/xsim --maxdeltaid 99999999 --noieeewarnings/g" run_xsim.sh
     source run_sim.tcl
     cd $old_pwd
 

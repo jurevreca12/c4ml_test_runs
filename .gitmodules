@@ -7,3 +7,6 @@
 [submodule "finn-hlslib"]
 	path = finn-hlslib
 	url = https://github.com/Xilinx/finn-hlslib
+[submodule "hls4ml"]
+	path = hls4ml
+	url = https://github.com/jurevreca12/hls4ml.git

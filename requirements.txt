@@ -1,5 +1,5 @@
 chisel4ml==0.3.6
-hls4ml @ git+https://github.com/fastmachinelearning/hls4ml@2c17f66
+hls4ml @ git+https://github.com/jurevreca12/hls4ml@3c188a87
 finn @ git+https://github.com/Xilinx/finn@v0.10.1
 vivado-report-parser
 pandas
@@ -28,3 +28,4 @@ sigtools==4.0.1
 toposort==1.7.0
 vcdvcd==1.0.5
 wget==3.2
+scikit-learn

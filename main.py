@@ -45,7 +45,7 @@ linear_layer_var_iq_exp = {
     "in_features": (32,),
     "out_features": (32,),
     "bias": (True,),
-    "iq": (2, 3, 4, 5, 6, 7),
+    "iq": (1, 2, 3, 4, 5, 6, 7),
     "wq": (4,),
     "bq": (8,),
     "oq": (4,),
@@ -55,7 +55,7 @@ linear_layer_var_wq_exp = {
     "out_features": (32,),
     "bias": (True,),
     "iq": (4,),
-    "wq": (2, 3, 4, 5, 6, 7),
+    "wq": (1, 2, 3, 4, 5, 6, 7),
     "bq": (8,),
     "oq": (4,),
 }
