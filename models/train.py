@@ -2,8 +2,9 @@ import torch
 from torch.nn.utils import prune
 import brevitas.nn as qnn
 from models.cnn_model import get_cnn_model
+from models.lhc_jets_model import get_lhc_jets_model
 from models.mnist_data import get_data_loaders
-
+from models.lhc_jets_hlf_data import get_lhc_dataset
 
 def print_sparsity(model):
     global_zeros = 0
@@ -83,7 +84,7 @@ def eval_model(model, test_loader, device):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
     accuracy = float(correct) / total
-    print(f"Accuracy of the network on the {len(test_loader)} test inputs: {100 * accuracy} %")
+    print(f"Accuracy of the network on the {len(test_loader)} test input batches: {100 * accuracy} %")
     return accuracy
 
 
@@ -115,9 +116,24 @@ def train_quantized_mnist_model(bitwidth, prune_rate=0.0):
         test_loader,
         bitwidth,
         prune_rate,
-        epochs=1
+        epochs=5
     )
     return trained_model
+
+def train_quantized_lhc_model(bitwidth, prune_rate=0.0):
+    model = get_lhc_jets_model(bitwidth=bitwidth, use_bn=True)
+    model_nobn = get_lhc_jets_model(bitwidth=bitwidth, use_bn=False)
+    train_loader, test_loader = get_lhc_dataset(batch_size=512)
+    trained_model, test_data, final_acc = train_quant_model(
+        model,
+        model_nobn,
+        train_loader,
+        test_loader,
+        bitwidth,
+        prune_rate,
+        epochs=5
+    )
+    return trained_model, test_data, final_acc
 
 
 def train_quant_model(model, model_nobn, train_loader, test_loader, bitwidth, prune_rate, epochs):
@@ -141,10 +157,21 @@ def train_quant_model(model, model_nobn, train_loader, test_loader, bitwidth, pr
     model_nobn.load_state_dict(
         {k: v for k, v in model.state_dict().items() if "bn" not in k}
     )
-    for layer in (model.conv0, model.conv1):
-        merge_batchnorm(layer.conv, layer.bn)
-    for layer in (model.dense0, model.dense1):
-        merge_batchnorm(layer.dense, layer.bn)
+    if hasattr(model, 'conv0'):  # cnn_model
+        for layer in (model.conv0, model.conv1):
+            merge_batchnorm(layer.conv, layer.bn)
+        for layer in (model.dense0, model.dense1):
+            merge_batchnorm(layer.dense, layer.bn)
+    else:  # lhc_jets model
+        lin_bn_pairs = (
+            (model.linear0, model.bn0),
+            (model.linear1, model.bn1),
+            (model.linear2, model.bn2),
+            (model.linear3, model.bn3),
+        )
+        for lin, bn in lin_bn_pairs:
+            merge_batchnorm(lin, bn)
+
     model_nobn.load_state_dict(
         {k: v for k, v in model.state_dict().items() if "bn" not in k}, strict=False
     )

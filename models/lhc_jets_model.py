@@ -86,7 +86,12 @@ def get_lhc_jets_model(bitwidth, use_bn=True):
             )
             if self.use_bn:
                 self.bn3 = torch.nn.BatchNorm1d(5)
-            self.softmax = torch.nn.Softmax()
+            self.quant_out = qnn.QuantIdentity(
+                bit_width=4,
+                scaling_impl_type="const",
+                scaling_init=2 ** 3,
+                signed=True
+            )
             if bw > 1:
                 self.act = qnn.QuantReLU(
                     bit_width=bw,
@@ -96,11 +101,10 @@ def get_lhc_jets_model(bitwidth, use_bn=True):
             else:
                 self.act = qnn.QuantIdentity(
                     bit_width=1,
-                    scaling_imply_type="const",
+                    scaling_impl_type="const",
                     scaling_init=1,
                     signed=True,
                 )
-
         def forward(self, x):
             x = self.linear0(x)
             if self.use_bn:
@@ -117,7 +121,7 @@ def get_lhc_jets_model(bitwidth, use_bn=True):
             x = self.linear3(x)
             if self.use_bn:
                 x = self.bn3(x)
-            x = self.softmax(x)
+            x = self.quant_out(x)
             return x
 
     model = LHCJetsModel(bitwidth, use_bn)

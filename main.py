@@ -7,6 +7,7 @@ from models.linear_model import get_linear_layer_model
 from models.conv_model import get_conv_layer_model
 from models.maxpool_model import get_maxpool_layer_model
 from models.train import train_quantized_mnist_model
+from models.train import train_quantized_lhc_model
 from test_chisel4ml import test_chisel4ml
 from test_hls4ml import test_hls4ml
 from test_finn import test_finn
@@ -89,7 +90,7 @@ conv_layer_var_iq_exp = {
     "input_ch": (1,),
     "output_ch": (1,),
     "kernel_size": ((3, 3),),
-    "iq": (2, 3, 4, 5, 6, 7),
+    "iq": (1, 2, 3, 4, 5, 6, 7),
     "wq": (4,),
     "bq": (8,),
     "oq": (4,),
@@ -100,7 +101,7 @@ conv_layer_var_wq_exp = {
     "output_ch": (1,),
     "kernel_size": ((3, 3),),
     "iq": (4,),
-    "wq": (2, 3, 4, 5, 6, 7),
+    "wq": (1, 2, 3, 4, 5, 6, 7),
     "bq": (8,),
     "oq": (4,),
 }
@@ -131,20 +132,33 @@ maxpool_layer_var_iq_exp = {
     "channels": (3,),
     "input_size": ((8, 8),),
     "kernel_size": ((2, 2),),
-    "iq": (2, 3, 4, 5, 6, 7),
+    "iq": (1, 2, 3, 4, 5, 6, 7),
 }
 
 ##############################
 #  CNN MODEL EXPERIMENTS     #
 ##############################
 cnn_mnist_model_var_bitwidth_exp = {
-    "bitwidth": (2, 3, 4, 5, 6, 7),
+    "bitwidth": (1, 2, 3, 4, 5, 6, 7),
     "prune_rate": (0.7,),
 }
 
 cnn_mnist_model_var_prune_rate_exp = {
     "bitwidth": (4,),
     "prune_rate": (0.7, 0.75, 0.8, 0.85, 0.9, 0.95),
+}
+
+##############################
+#  LHC MODEL EXPERIMENTS     #
+##############################
+lhc_model_var_bitwidth_exp = {
+    "bitwidth": (1, 2, 3, 4, 5, 6, 7),
+    "prune_rate": (0.5,),
+}
+
+lhc_model_var_prune_rate_exp = {
+    "bitwidth": (3,),
+    "prune_rate": (0.0, 0.2, 0.4, 0.6, 0.8)
 }
 
 EXPERIMENTS = (
@@ -232,6 +246,18 @@ EXPERIMENTS = (
         "cnn_mnist_model_var_prune_rate_exp",
         "ProcessingPipeline",
     ),  # 13
+    (
+        lhc_model_var_bitwidth_exp,
+        train_quantized_lhc_model,
+        "lhc_model_var_bitwidth_exp",
+        "ProcessingPipeline",
+    ),  # 14
+    (
+        lhc_model_var_prune_rate_exp,
+        train_quantized_lhc_model,
+        "lhc_model_var_prune_rate_exp",
+        "ProcessingPipeline",
+    ),  # 15
 )
 current_exp = 0
 
@@ -293,13 +319,13 @@ def run_test(*args):
         qonnx_model = ModelWrapper(qonnx_model_file)
         test_data = np.load(test_data_file)
     # CHISEL4ML
-    if not os.path.exists(f"{work_dir}/c4ml/utilization.rpt"):
-        print(f"Starting {work_dir}/c4ml run!")
-        test_chisel4ml(
-            qonnx_model, test_data, f"{work_dir}/c4ml/", SCRIPT_DIR, top_name
-        )
-    else:
-        print(f"Skipping {work_dir}/c4ml run. Already Exists!")
+    #if not os.path.exists(f"{work_dir}/c4ml/utilization.rpt"):
+    #    print(f"Starting {work_dir}/c4ml run!")
+    #    test_chisel4ml(
+    #        qonnx_model, test_data, f"{work_dir}/c4ml/", SCRIPT_DIR, top_name
+    #    )
+    #else:
+    #    print(f"Skipping {work_dir}/c4ml run. Already Exists!")
 
     # HLS4ML
     if not os.path.exists(f"{work_dir}/hls4ml/vivado_synth.rpt"):
