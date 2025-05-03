@@ -309,11 +309,11 @@ def run_test(*args):
         print(f"Skipping {work_dir}/hls4ml run. Already Exists!")
 
     # FINN
-    #if not os.path.exists(f"{work_dir}/finn/info.json"):
-    #    print(f"Starting {work_dir}/finn run!")
-    #    test_finn(qonnx_model_file, f"{work_dir}/finn/", SCRIPT_DIR)
-    #else:
-    #    print(f"Skipping {work_dir}/finn run. Already Exists!")
+    if not os.path.exists(f"{work_dir}/finn/info.json"):
+        print(f"Starting {work_dir}/finn run!")
+        test_finn(qonnx_model_file, f"{work_dir}/finn/", SCRIPT_DIR)
+    else:
+        print(f"Skipping {work_dir}/finn run. Already Exists!")
 
 
 if __name__ == "__main__":
