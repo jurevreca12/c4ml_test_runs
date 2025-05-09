@@ -14,6 +14,7 @@ import onnx
 
 import finn.transformation.streamline.absorb as absorb
 from finn.transformation.streamline.round_thresholds import RoundAndClipThresholds
+from round_thresholds_old import RoundAndClipThresholdsOld
 from finn.transformation.streamline.reorder import MakeMaxPoolNHWC
 from qonnx.transformation.lower_convs_to_matmul import LowerConvsToMatMul
 from qonnx.transformation.remove import RemoveIdentityOps
@@ -71,6 +72,11 @@ def step_custom_convert_to_hw_layers(model: ModelWrapper, cfg: DataflowBuildConf
     model = model.transform(InferShapes())
     model = model.transform(GiveUniqueNodeNames())
     model = model.transform(RoundAndClipThresholds())
+    model = model.transform(RoundAndClipThresholds())
+    model = model.transform(RoundAndClipThresholds())
+    model = model.transform(RoundAndClipThresholds())
+    model = model.transform(RoundAndClipThresholds())
+    model = model.transform(RoundAndClipThresholds())
     model = model.transform(GiveReadableTensorNames())
     model = model.transform(PreferedImplStyle())
     model = model.transform(MakeMaxPoolNHWC())
@@ -81,6 +87,13 @@ def step_custom_convert_to_hw_layers(model: ModelWrapper, cfg: DataflowBuildConf
     model = model.transform(to_hw.InferVectorVectorActivation())
     model = model.transform(to_hw.InferQuantizedMatrixVectorActivation())
     model = model.transform(to_hw.InferChannelwiseLinearLayer())
+    model = model.transform(RoundAndClipThresholdsOld())
+    model = model.transform(RoundAndClipThresholdsOld())
+    model = model.transform(RoundAndClipThresholdsOld())
+    model = model.transform(RoundAndClipThresholdsOld())
+    model = model.transform(RoundAndClipThresholdsOld())
+    model = model.transform(RoundAndClipThresholdsOld())
+    model = model.transform(RoundAndClipThresholdsOld())
     model = model.transform(to_hw.InferThresholdingLayer())
     model = model.transform(to_hw.InferLabelSelectLayer())
     model = model.transform(absorb.AbsorbTransposeIntoMultiThreshold())
