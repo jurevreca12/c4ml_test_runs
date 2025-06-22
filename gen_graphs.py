@@ -73,6 +73,18 @@ def exp_get_latency_cycles_list_finn(data):
         latency_cycles_list.append(run['finn']['rtlsim_performance']['latency_cycles'])
     return latency_cycles_list
 
+def exp_get_init_interval_list(data, tool="chisel4ml"):
+    init_interval_list = []
+    for run in data:
+        if tool == "chisel4ml":
+            init_interval = 1 # c4ml circuits have II=1
+        elif tool == "hls4ml":
+            init_interval = run["info_rpt"]['CSynthesisReport']['IntervalMin']
+            assert init_interval == run["info_rpt"]['CSynthesisReport']['IntervalMax']
+        else:
+            raise Exception
+    return latency_cycles_list
+
 def exp_get_troughput_list(data, tool="chisel4ml"):
     throughput_list = []
     for run in data:
@@ -116,6 +128,8 @@ key_to_name_dict = {
     "channels": "Channels",
     "input_size": "Input Size",
     "kernel_size": "Kernel Size",
+    "bitwidth": "Bitwidth",
+    "prune_rate": "Prune Rate",
 }
 
 

@@ -65,6 +65,29 @@ class WeightPerTensorQuant(WeightQuantSolver):
     narrow_range = False  # quantization range is [-127,127] rather than [-128, 127]
     zero_point_impl = ZeroZeroPoint  # zero point is 0.
 
+class CommonQuantSymmetric(ExtendedInjector):
+    bit_width_impl_type = BitWidthImplType.CONST
+    zero_point_impl = ZeroZeroPoint
+    float_to_int_impl_type = FloatToIntImplType.ROUND
+    scaling_per_output_channel = False
+    narrow_range = True
+    signed = True
+
+    @value
+    def quant_type(bit_width):
+        if bit_width is None:
+            return QuantType.FP
+        elif bit_width == 1:
+            return QuantType.BINARY
+        else:
+            return QuantType.INT
+
+class WeightScaleFromStatPerOutputChannelQuant(WeightQuantSolver, CommonQuantSymmetric):
+    scaling_impl_type = ScalingImplType.PARAMETER_FROM_STATS 
+    scaling_stats_op = StatsOp.MAX   
+    restrict_scaling_type = RestrictValueType.POWER_OF_TWO
+    #scaling_per_output = ScalingPerOutputType.CHANNEL
+    scaling_per_output_channel = False 
 
 class IntBiasQuant(BiasQuantSolver):
     quant_type = QuantType.INT  # integer quantization
