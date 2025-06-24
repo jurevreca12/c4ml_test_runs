@@ -5,7 +5,7 @@ import torch
 from torch.nn import Module
 from qonnx.core.datatype import DataType
 from qonnx.util.basic import gen_finn_dt_tensor
-from models.quantizers import WeightScaleFromStatPerOutputChannelQuant
+from models.quantizers import WeightPerTensorQuant, BinaryWeightPerTensorQuant
 from models.quantizers import IntBiasQuant
 from models.quantizers import IntActQuant
 
@@ -26,7 +26,7 @@ def get_lhc_jets_model(bitwidth, use_bn=True):
                 in_features=16,
                 out_features=64,
                 bias=True,
-                weight_quant=WeightScaleFromStatPerOutputChannelQuant,
+                weight_quant=BinaryWeightPerTensorQuant if bw== 1 else WeightPerTensorQuant,
                 weight_bit_width=bw,
                 weight_scaling_init=1 if bw == 1 else 2 ** (bw - 1) - 1,
                 bias_quant=IntBiasQuant,
@@ -44,7 +44,7 @@ def get_lhc_jets_model(bitwidth, use_bn=True):
                 in_features=64,
                 out_features=32,
                 bias=True,
-                weight_quant=WeightScaleFromStatPerOutputChannelQuant,
+                weight_quant=BinaryWeightPerTensorQuant if bw== 1 else WeightPerTensorQuant,
                 weight_bit_width=bw,
                 weight_scaling_init=1 if bw == 1 else 2 ** (bw - 1) - 1,
                 bias_quant=IntBiasQuant,
@@ -58,7 +58,7 @@ def get_lhc_jets_model(bitwidth, use_bn=True):
                 in_features=32,
                 out_features=32,
                 bias=True,
-                weight_quant=WeightScaleFromStatPerOutputChannelQuant,
+                weight_quant=BinaryWeightPerTensorQuant if bw== 1 else WeightPerTensorQuant,
                 weight_bit_width=bw,
                 weight_scaling_init=1 if bw == 1 else 2 ** (bw - 1) - 1,
                 bias_quant=IntBiasQuant,
@@ -72,7 +72,7 @@ def get_lhc_jets_model(bitwidth, use_bn=True):
                 in_features=32,
                 out_features=5,
                 bias=True,
-                weight_quant=WeightScaleFromStatPerOutputChannelQuant,
+                weight_quant=BinaryWeightPerTensorQuant if bw== 1 else WeightPerTensorQuant,
                 weight_bit_width=bw,
                 weight_scaling_init=1 if bw == 1 else 2 ** (bw - 1) - 1,
                 bias_quant=IntBiasQuant,

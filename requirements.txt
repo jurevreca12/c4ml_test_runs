@@ -1,5 +1,5 @@
 chisel4ml==0.3.6
-hls4ml @ git+https://github.com/jurevreca12/hls4ml@3c188a87
+hls4ml @ git+https://github.com/jurevreca12/hls4ml@08dafdfc
 finn @ git+https://github.com/Xilinx/finn@v0.10.1
 vivado-report-parser
 pandas

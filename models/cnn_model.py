@@ -1,7 +1,7 @@
 import brevitas.nn as qnn
 import torch
 from torch.nn import Module
-from models.quantizers import WeightPerTensorQuant
+from models.quantizers import WeightPerTensorQuant, BinaryWeightPerTensorQuant
 from models.quantizers import IntBiasQuant
 
 
@@ -18,7 +18,7 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
                 kernel_size=conv_kernel_size,
                 stride=1,
                 bias=True,
-                weight_quant=WeightPerTensorQuant,
+                weight_quant=BinaryWeightPerTensorQuant if bitwidth== 1 else WeightPerTensorQuant,
                 weight_bit_width=bitwidth,
                 bias_quant=IntBiasQuant,
                 bias_bit_width=bias_bitwidth,
@@ -27,24 +27,32 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             )
             if use_bn:
                 self.bn = torch.nn.BatchNorm2d(output_ch)
-            self.relu = qnn.QuantReLU(
-                bit_width=bitwidth,
-                scaling_impl_type="const",
-                scaling_init=(2**bitwidth) - 1,
-            )
+            if bitwidth > 1:
+                self.act = qnn.QuantReLU(
+                    bit_width=bitwidth,
+                    scaling_impl_type="const",
+                    scaling_init=(2**bitwidth) - 1,
+                )
+            else:
+                self.act = qnn.QuantIdentity(
+                    bit_width=1,
+                    scaling_impl_type="const",
+                    scaling_init=1,
+                    signed=True,
+                )
             self.maxpool = torch.nn.MaxPool2d(kernel_size=maxpool_kernel_size)
             self.quant = qnn.QuantIdentity(
                 bit_width=bitwidth,
                 scaling_impl_type="const",
-                scaling_init=2 ** (bitwidth) - 1,
-                signed=False,  # ReLU
+                scaling_init=1 if bitwidth == 1 else 2 ** (bitwidth) - 1,
+                signed=True if bitwidth == 1 else False,  # ReLU
             )
 
         def forward(self, x):
             x = self.conv(x)
             if use_bn:
                 x = self.bn(x)
-            x = self.relu(x)
+            x = self.act(x)
             x = self.maxpool(x)
             x = self.quant(x)
             return x
@@ -56,7 +64,7 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
                 in_features=in_features,
                 out_features=out_features,
                 bias=True,
-                weight_quant=WeightPerTensorQuant,
+                weight_quant=BinaryWeightPerTensorQuant if bitwidth== 1 else WeightPerTensorQuant,
                 weight_bit_width=bitwidth,
                 bias_quant=IntBiasQuant,
                 bias_bit_width=bias_bitwidth,
@@ -65,17 +73,25 @@ def get_cnn_model(bitwidth, bias_bitwidth=8, input_bitwidth=8, use_bn=True):
             )
             if use_bn:
                 self.bn = torch.nn.BatchNorm1d(out_features)
-            self.relu = qnn.QuantReLU(
-                bit_width=bitwidth,
-                scaling_impl_type="const",
-                scaling_init=(2**bitwidth) - 1,
-            )
+            if bitwidth > 1:
+                self.act = qnn.QuantReLU(
+                    bit_width=bitwidth,
+                    scaling_impl_type="const",
+                    scaling_init=(2**bitwidth) - 1,
+                )
+            else:
+                self.act = qnn.QuantIdentity(
+                    bit_width=1,
+                    scaling_impl_type="const",
+                    scaling_init=1,
+                    signed=True,
+                )
 
         def forward(self, x):
             x = self.dense(x)
             if use_bn:
                 x = self.bn(x)
-            x = self.relu(x)
+            x = self.act(x)
             return x
 
     class CNNModel(Module):

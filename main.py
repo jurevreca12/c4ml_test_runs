@@ -46,7 +46,7 @@ linear_layer_var_iq_exp = {
     "in_features": (32,),
     "out_features": (32,),
     "bias": (True,),
-    "iq": (2, 3, 4, 5, 6, 7),
+    "iq": (1, 2, 3, 4, 5, 6, 7),
     "wq": (4,),
     "bq": (8,),
     "oq": (4,),
@@ -56,7 +56,7 @@ linear_layer_var_wq_exp = {
     "out_features": (32,),
     "bias": (True,),
     "iq": (4,),
-    "wq": (2, 3, 4, 5, 6, 7),
+    "wq": (1, 2, 3, 4, 5, 6, 7),
     "bq": (8,),
     "oq": (4,),
 }
@@ -90,7 +90,7 @@ conv_layer_var_iq_exp = {
     "input_ch": (1,),
     "output_ch": (1,),
     "kernel_size": ((3, 3),),
-    "iq": (2, 3, 4, 5, 6, 7),
+    "iq": (1, 2, 3, 4, 5, 6, 7),
     "wq": (4,),
     "bq": (8,),
     "oq": (4,),
@@ -101,7 +101,7 @@ conv_layer_var_wq_exp = {
     "output_ch": (1,),
     "kernel_size": ((3, 3),),
     "iq": (4,),
-    "wq": (2, 3, 4, 5, 6, 7),
+    "wq": (1, 2, 3, 4, 5, 6, 7),
     "bq": (8,),
     "oq": (4,),
 }
@@ -132,14 +132,14 @@ maxpool_layer_var_iq_exp = {
     "channels": (3,),
     "input_size": ((8, 8),),
     "kernel_size": ((2, 2),),
-    "iq": (2, 3, 4, 5, 6, 7),
+    "iq": (1, 2, 3, 4, 5, 6, 7),
 }
 
 ##############################
 #  CNN MODEL EXPERIMENTS     #
 ##############################
 cnn_mnist_model_var_bitwidth_exp = {
-    "bitwidth": (2, 3, 4, 5, 6),
+    "bitwidth": (1, 2, 3, 4, 5, 6, 7),
     "prune_rate": (0.7,),
 }
 
@@ -152,7 +152,7 @@ cnn_mnist_model_var_prune_rate_exp = {
 #  LHC MODEL EXPERIMENTS     #
 ##############################
 lhc_model_var_bitwidth_exp = {
-    "bitwidth": (2, 3, 4, 5, 6, 7),
+    "bitwidth": (1, 2, 3, 4, 5, 6, 7),
     "prune_rate": (0.5,),
 }
 

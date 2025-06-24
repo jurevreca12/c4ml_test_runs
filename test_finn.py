@@ -87,6 +87,7 @@ def step_custom_convert_to_hw_layers(model: ModelWrapper, cfg: DataflowBuildConf
     model = model.transform(to_hw.InferVectorVectorActivation())
     model = model.transform(to_hw.InferQuantizedMatrixVectorActivation())
     model = model.transform(to_hw.InferChannelwiseLinearLayer())
+    model = model.transform(to_hw.InferBinaryMatrixVectorActivation())
     model = model.transform(RoundAndClipThresholdsOld())
     model = model.transform(RoundAndClipThresholdsOld())
     model = model.transform(RoundAndClipThresholdsOld())
