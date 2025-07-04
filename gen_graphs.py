@@ -3,7 +3,6 @@ import itertools
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import numpy as np
 from main import EXPERIMENTS
 from main import get_work_dir
 from main import get_exp_by_name
@@ -11,112 +10,6 @@ from parse_reports import parse_reports
 from parse_reports import parse_finn_reports
 import argparse
 
-def exp_get_time_list(data, tool="chisel4ml"):
-    time_list = []
-    for run in data:
-        time_list.append(float(run[tool]["info_rpt"]["total_duration"]) / (60 * 60))
-    return time_list
-
-
-def exp_get_mem_list(data, tool="chisel4ml"):
-    mem_list = []
-    for run in data:
-        max_rss = float(run[tool]['info_rpt']['total_max_rss_memory'])
-        mem_list.append(max_rss / (1024 * 1024))
-    return mem_list
-
-def exp_get_elem_list(data, tool="chisel4ml", elem="CLB LUTs*"):
-    elem_list = []
-    for run in data:
-        index = -1
-        for ind, x in enumerate(run[tool]["util"]["CLB Logic"]):
-            if x["Site Type"] == elem:
-                index = ind
-        if index == -1:
-            raise ValueError
-        elem_list.append(float(run[tool]["util"]["CLB Logic"][index]["Used"]))
-    return elem_list
-
-def exp_get_elem_list_finn(data, elem='LUT'):
-    elem_list = []
-    for run in data:
-        elem_list.append(float(run['finn']['ooc_synth_and_timing'][elem]))
-    return elem_list
-
-def exp_get_delay_list(data, tool="chisel4ml", delay_type="Path Delay"):
-    elem_list = []
-    for run in data:
-        val = run[tool]["design"][delay_type][0:5]
-        elem_list.append(float(val))
-    return elem_list
-
-def exp_get_delay_list_finn(data):
-    elem_list = []
-    for run in data:
-        elem_list.append(run['finn']['ooc_synth_and_timing']['Delay'])
-    return elem_list
-
-def exp_get_latency_cycles_list(data, tool="chisel4ml"):
-    latency_cycles_list = []
-    for run in data:
-        delay = float(run[tool]["design"]["Path Delay"][0:5])
-        if tool == "chisel4ml":
-            latency_cycles = float(run[tool]["info_rpt"]["exact_latency"])
-        else:
-            latency_cycles = float(run[tool]["info_rpt"]["CosimReport"]["LatencyAvg"])
-        latency_cycles_list.append(latency_cycles)
-    return latency_cycles_list
-
-def exp_get_latency_cycles_list_finn(data):
-    latency_cycles_list = []
-    for run in data:
-        latency_cycles_list.append(run['finn']['rtlsim_performance']['latency_cycles'])
-    return latency_cycles_list
-
-def exp_get_init_interval_list(data, tool="chisel4ml"):
-    init_interval_list = []
-    for run in data:
-        if tool == "chisel4ml":
-            init_interval = 1 # c4ml circuits have II=1
-        elif tool == "hls4ml":
-            init_interval = run["info_rpt"]['CSynthesisReport']['IntervalMin']
-            assert init_interval == run["info_rpt"]['CSynthesisReport']['IntervalMax']
-        else:
-            raise Exception
-    return latency_cycles_list
-
-def exp_get_troughput_list(data, tool="chisel4ml"):
-    throughput_list = []
-    for run in data:
-        path_delay_ns = float(run[tool]["design"]["Path Delay"][0:5])
-        throughput_list.append((10**9) / path_delay_ns)
-    return throughput_list
-
-def exp_get_troughput_list_finn(data):
-    throughput_list = []
-    for run in data:
-        throughput_list.append(run['finn']['ooc_synth_and_timing']['estimated_throughput_fps'])
-    return throughput_list
-
-
-def exp_get_total_latency_list(data, tool="chisel4ml"):
-    latency_list = []
-    for run in data:
-        delay = float(run[tool]["design"]["Path Delay"][0:5])
-        if tool == "chisel4ml":
-            latency_cycles = float(run[tool]["info_rpt"]["exact_latency"])
-        else:
-            latency_cycles = float(run[tool]["info_rpt"]["CosimReport"]["LatencyAvg"])
-        latency_list.append(latency_cycles * delay)
-    return latency_list
-
-def exp_get_total_latency_list_finn(data):
-    latency_list = []
-    for run in data:
-        latency_cycles = run['finn']['rtlsim_performance']['latency_cycles']
-        delay = run['finn']['ooc_synth_and_timing']['Delay']
-        latency_list.append(latency_cycles * delay)
-    return latency_list
 
 key_to_name_dict = {
     "input_ch": "Input Channels",
@@ -133,6 +26,172 @@ key_to_name_dict = {
 }
 
 
+def get_total_latency_c4ml(run):
+    delay = float(run["design"]["Path Delay"][0:5])
+    latency_cycles = float(run["info_rpt"]["exact_latency"])
+    total_latency = latency_cycles * delay
+    return total_latency
+
+
+def get_total_latency_hls4ml(run):
+    delay = float(run["design"]["Path Delay"][0:5])
+    latency_cycles = float(run["info_rpt"]["CosimReport"]["LatencyAvg"])
+    total_latency = latency_cycles * delay
+    return total_latency
+
+
+def get_total_latency_finn(run):
+    delay = run["rtlsim_performance"]["latency_cycles"]
+    latency_cycles = run["ooc_synth_and_timing"]["Delay"]
+    total_latency = latency_cycles * delay
+    return total_latency
+
+
+def get_throughput_hls4ml(run):
+    path_delay_ns = float(run["design"]["Path Delay"][0:5])
+    init_interval = int(run['info_rpt']['CSynthesisReport']['IntervalMax'])
+    assert init_interval == int(run['info_rpt']['CSynthesisReport']['IntervalMin'])
+    return (10**9) / (path_delay_ns * init_interval)
+
+FIELDS = {
+    'syn_time': {
+        'chisel4ml': ['info_rpt', 'total_duration', lambda x: float(x) / (60 * 60)],
+        'hls4ml': ['info_rpt', 'total_duration', lambda x: float(x) / (60 * 60)],
+        'finn': ['info_rpt', 'total_duration', lambda x: float(x) / (60 * 60)],
+        'long_name': 'Generation Time [hours]',
+    },
+    'lut': {
+        'chisel4ml': ['util', 'CLB Logic', 0, 'Used', int],
+        'hls4ml': ['util', 'CLB Logic', 0, 'Used', int],
+        'finn': ['ooc_synth_and_timing', 'LUT', int],
+        'assert': 'CLB LUTs*',  # assert that site-type column equals it
+        'long_name': 'Look-Up Tables',
+    },
+    'ff': {
+        'chisel4ml': ['util', 'CLB Logic', 3, 'Used', int],
+        'hls4ml': ['util', 'CLB Logic', 3, 'Used', int],
+        'finn': ['ooc_synth_and_timing', 'FF', int],
+        'ssert': 'CLB Registers',
+        'long_name': 'Flip-Flops',
+    },
+    'bram_tile': {
+        'chisel4ml': ['util', 'BLOCKRAM', 0, 'Used', int],
+        'hls4ml': ['util', 'BLOCKRAM', 0, 'Used', int],
+        'finn': ['ooc_synth_and_timing', 'BRAM', int],
+        'long_name': 'Block RAM Tile'
+    },
+    'bram_b36': {
+        'chisel4ml': ['util', 'BLOCKRAM', 1, 'Used', int],
+        'hls4ml': ['util', 'BLOCKRAM', 1, 'Used', int],
+        'finn': ['ooc_synth_and_timing', 'BRAM_36K', int], 
+        'long_name': 'Block RAM 36kb'
+    },
+    'bram_b18': {
+        'chisel4ml': ['util', 'BLOCKRAM', 2, 'Used', int],
+        'hls4ml': ['util', 'BLOCKRAM', 2, 'Used', int],
+        'finn': ['ooc_synth_and_timing', 'BRAM_18K', float, int],
+        'long_name': 'Block RAM 16kb'
+    },
+    'uram': {
+        'chisel4ml': ['util', 'BLOCKRAM', 3, 'Used', int],
+        'hls4ml': ['util', 'BLOCKRAM', 3, 'Used', int],
+        'finn': ['ooc_synth_and_timing', 'URAM', int],
+        'long_name': 'UltraRAM'
+    },
+    'dsp': {
+        'chisel4ml': ['util', 'ARITHMETIC', 0, 'Used', int],
+        'hls4ml': ['util', 'ARITHMETIC', 0, 'Used', int],
+        'finn': ['ooc_synth_and_timing', 'DSP', int],
+        'long_name': 'DSP Block',
+    },
+    'path_delay': {
+        'chisel4ml': ['design', 'Path Delay', lambda x: float(x[0:5])],
+        'hls4ml': ['design', 'Path Delay', lambda x: float(x[0:5])],
+        'finn': ['ooc_synth_and_timing', 'Delay', float],
+        'long_name': 'Path Delay [ns]',
+    },
+    'peak_mem_usage': {
+        'chisel4ml': ['info_rpt', 'total_max_rss_memory', lambda x: int(x) / (1024 * 1024)],
+        'hls4ml': ['info_rpt', 'total_max_rss_memory', lambda x: int(x) / (1024 * 1024)],
+        'finn': ['info_rpt', 'total_max_rss_memory', lambda x: int(x) / (1024 * 1024)],
+        'long_name': 'Peak Memory [MiB]',
+    },
+    'init_interval': {
+        'chisel4ml': [lambda _: 1],
+        'hls4ml': ['info_rpt', 'CSynthesisReport', 'IntervalMax', int],
+        'finn': [lambda _: None],  # TODO
+        'long_name': 'Initiation Interval',
+    },
+    'throughput': {
+        'chisel4ml': ['design', 'Path Delay', lambda x: (10**9) / float(x[0:5])],
+        'hls4ml': [get_throughput_hls4ml],
+        'finn': ['ooc_synth_and_timing', 'estimated_throughput_fps', float],
+        'long_name': 'Throughput [Hz]',
+    },
+    'latency_cycles': {
+        'chisel4ml': ['info_rpt', 'exact_latency', int],
+        'hls4ml': ['info_rpt', 'CosimReport', 'LatencyAvg', int],
+        'finn': ['rtlsim_performance', 'latency_cycles', int],
+        'long_name': 'Latency Cycles',
+    },
+    'total_latency': {
+        'chisel4ml': [get_total_latency_c4ml],
+        'hls4ml': [get_total_latency_hls4ml],
+        'finn': [get_total_latency_finn],
+        'long_name': 'Total Latency [ns]',
+    },
+}
+
+
+
+def gather_results(exp):
+    exp_name = exp[2]
+    exp_base = f"/circuits/{exp_name}/"
+    exp_keys = exp[0].keys()
+    feat_list = list(itertools.product(*exp[0].values()))
+    results = []
+    if not os.path.exists(f"./circuits/{exp_name}"):
+        print(f"SKIPPING experiment {exp_name}. Directory does not exist!")
+        return None
+    for feat in feat_list:
+        work_dir = get_work_dir(exp_keys, feat, base=exp_base)
+        try:
+            c4ml_res = parse_reports(f"{work_dir}/c4ml")
+        except FileNotFoundError:
+            print(f"WARNING: Could not parse {work_dir}/c4ml. Setting to None.")
+            c4ml_res = None
+
+        try:
+            hls4ml_res = parse_reports(
+                f"{work_dir}/hls4ml/", util_rpt_file="vivado_synth.rpt"
+            )
+        except FileNotFoundError:
+            print(f"WARNING: Could not parse {work_dir}/hls4ml. Setting to None.")
+            hls4ml_res = None
+
+        try:
+            finn_res = parse_finn_reports(
+                f"{work_dir}/finn"
+            )
+        except:
+            print(f"WARNING: Could not parse {work_dir}/finn. Setting to None.")
+            finn_res = None
+
+        test_res = {
+            "work_dir": work_dir,
+            "chisel4ml": c4ml_res,
+            "hls4ml": hls4ml_res,
+            "finn": finn_res
+        }
+        if os.path.exists(f"{work_dir}/acc.log"):
+            with open(f"{work_dir}/acc.log", 'r') as f:
+                ftxt = f.readlines()
+            acc = float(ftxt[1])
+            test_res["acc"] = acc
+        results.append(test_res)
+    return results
+
+
 def get_x_axis(exp_dict):
     for key in exp_dict.keys():
         if len(exp_dict[key]) > 1:
@@ -142,240 +201,82 @@ def get_x_axis(exp_dict):
                 return exp_dict[key], key_to_name_dict[key]
 
 
-def gather_results(exp):
-    exp_name = exp[2]
-    exp_base = f"/circuits/{exp_name}/"
-    exp_keys = exp[0].keys()
-    feat_list = list(itertools.product(*exp[0].values()))
-    results = []
-    for feat in feat_list:
-        work_dir = get_work_dir(exp_keys, feat, base=exp_base)
-        c4ml_res = parse_reports(f"{work_dir}/c4ml/")
-        hls4ml_res = parse_reports(
-            f"{work_dir}/hls4ml/", util_rpt_file="vivado_synth.rpt"
-        )
-        finn_res = parse_finn_reports(
-            f"{work_dir}/finn"
-        )
-        test_res = {
-            "work_dir": work_dir, 
-            "chisel4ml": c4ml_res, 
-            "hls4ml": hls4ml_res,
-            "finn": finn_res
-        }
-        if os.path.exists(f"{work_dir}/acc.log"):
-            with open(f"{work_dir}/acc.log", "r") as f:
-                ftxt = f.readlines()
-            acc = float(ftxt[1])
-            test_res["acc"] = acc
-        results.append(test_res)
-    return results
 
+def undict(dct, fields):
+    value = dct
+    for field in fields:
+        if callable(field):
+            value = field(value)
+        elif isinstance(value, (dict, list)) and value[field] is None:
+            return None
+        else:
+            value = value[field]
+    return value
 
-def generate_report_for_exp(exp):
-    data = gather_results(exp)
-
-    x_axis, x_axis_name = get_x_axis(exp[0])
-
-    c4ml_syn_time_list = exp_get_time_list(data, tool="chisel4ml")
-    hls4ml_syn_time_list = exp_get_time_list(data, tool="hls4ml")
-    finn_syn_time_list = exp_get_time_list(data, tool="finn")
-    syn_time_arr = np.array([x_axis, c4ml_syn_time_list, hls4ml_syn_time_list, finn_syn_time_list])
-    syn_time_df = pd.DataFrame(syn_time_arr.T, columns=[x_axis_name, "chisel4ml", "hls4ml", "finn"])
-    melt_syn_time_df = syn_time_df.melt(
-        x_axis_name, var_name="tool", value_name="Synthesis Time [hours]"
-    )
-
-    c4ml_luts_list = exp_get_elem_list(data, tool="chisel4ml", elem="CLB LUTs*")
-    hls4ml_luts_list = exp_get_elem_list(data, tool="hls4ml", elem="CLB LUTs*")
-    finn_luts_list = exp_get_elem_list_finn(data, elem='LUT')
-    lut_arr = np.array([x_axis, c4ml_luts_list, hls4ml_luts_list, finn_luts_list])
-    lut_df = pd.DataFrame(lut_arr.T, columns=[x_axis_name, "chisel4ml", "hls4ml", "finn"])
-    melt_lut_df = lut_df.melt(x_axis_name, var_name="tool", value_name="Look-Up Tables")
-
-    c4ml_ff_list = exp_get_elem_list(data, tool="chisel4ml", elem="CLB Registers")
-    hls4ml_ff_list = exp_get_elem_list(data, tool="hls4ml", elem="CLB Registers")
-    finn_ff_list = exp_get_elem_list_finn(data, elem='FF')
-    ff_arr = np.array([x_axis, c4ml_ff_list, hls4ml_ff_list, finn_ff_list])
-    ff_df = pd.DataFrame(ff_arr.T, columns=[x_axis_name, "chisel4ml", "hls4ml", "finn"])
-    melt_ff_df = ff_df.melt(
-        x_axis_name, var_name='tool', value_name="Flip-Flops"
-    )
-
-    c4ml_delay_list = exp_get_delay_list(data, tool="chisel4ml")
-    hls4ml_delay_list = exp_get_delay_list(data, tool="hls4ml")
-    finn_delay_list = exp_get_delay_list_finn(data)
-    delay_arr = np.array([x_axis, c4ml_delay_list, hls4ml_delay_list, finn_delay_list])
-    delay_df = pd.DataFrame(delay_arr.T, columns=[x_axis_name, "chisel4ml", "hls4ml", "finn"])
-    melt_delay_df = delay_df.melt(
-        x_axis_name, var_name="tool", value_name="Path Delay [ns]"
-    )
-
-    c4ml_mem_usage_list = exp_get_mem_list(data, tool="chisel4ml")
-    hls4ml_mem_usage_list = exp_get_mem_list(data, tool="hls4ml")
-    finn_mem_usage_list = exp_get_mem_list(data, tool="finn")
-    mem_usage_arr = np.array([x_axis, c4ml_mem_usage_list, hls4ml_mem_usage_list, finn_mem_usage_list])
-    mem_usage_df = pd.DataFrame(mem_usage_arr.T, columns=[x_axis_name, "chisel4ml", "hls4ml", "finn"])
-    melt_mem_usage_df = mem_usage_df.melt(
-        x_axis_name, var_name="tool", value_name="Peak Memory [MB]"
-    )
-
-    c4ml_throughput_list = exp_get_troughput_list(data, tool="chisel4ml")
-    hls4ml_throughput_list = exp_get_troughput_list(data, tool="hls4ml")
-    finn_throughput_list = exp_get_troughput_list_finn(data)
-    throughput_arr = np.array([x_axis, c4ml_throughput_list, hls4ml_throughput_list, finn_throughput_list])
-    throughput_df = pd.DataFrame(throughput_arr.T, columns=[x_axis_name, "chisel4ml", "hls4ml", "finn"])
-    melt_throughput_df = throughput_df.melt(
-        x_axis_name, var_name="tool", value_name="Throughput [Hz]"
-    )
-
-    c4ml_latency_cycles_list = exp_get_latency_cycles_list(data, tool="chisel4ml")
-    hls4ml_latency_cycles_list = exp_get_latency_cycles_list(data, tool="hls4ml")
-    finn_latency_cycles_list = exp_get_latency_cycles_list_finn(data)
-    latency_cycles_arr = np.array([x_axis, c4ml_latency_cycles_list, hls4ml_latency_cycles_list, finn_latency_cycles_list])
-    latency_cycles_df = pd.DataFrame(latency_cycles_arr.T, columns=[x_axis_name, "chisel4ml", "hls4ml", "finn"])
-    melt_latency_cycles_df = latency_cycles_df.melt(
-        x_axis_name, var_name="tool", value_name="Latency Cycles"
-    )
-
-    c4ml_latency_list = exp_get_total_latency_list(data, tool="chisel4ml")
-    hls4ml_latency_list = exp_get_total_latency_list(data, tool="hls4ml")
-    finn_latency_list = exp_get_total_latency_list_finn(data)    
-    latency_arr = np.array([x_axis, c4ml_latency_list, hls4ml_latency_list, finn_latency_list])
-    latency_df = pd.DataFrame(latency_arr.T, columns=[x_axis_name, "chisel4ml", "hls4ml", "finn"])
-    melt_latency_df = latency_df.melt(
-        x_axis_name, var_name="tool", value_name="Total Latency [ns]"
-    )
-
-    for df in (lut_df, syn_time_df, delay_df, mem_usage_df, throughput_df, latency_df):
-        df[x_axis_name] = df[x_axis_name].apply(lambda x: int(x))
-
-
-
-    sns.set_style("darkgrid", {"axes.facecolor": ".9"})
-    if not os.path.isdir(f"plots/{exp[2]}"):
-        os.makedirs(f"plots/{exp[2]}")
-
-    sns.catplot(
-        x=x_axis_name,
-        y="Look-Up Tables",
-        hue="tool",
-        data=melt_lut_df,
-        kind="point",
-        markers=["o", "s", "^"],
-        legend_out=False,
-        legend="brief",
-    )
-    plt.savefig(f"plots/{exp[2]}/lut_plot.png")
-    plt.close()
-
-    sns.catplot(
-        x=x_axis_name,
-        y="Flip-Flops",
-        hue="tool",
-        data=melt_ff_df,
-        kind="point",
-        markers=["o", "s", "^"],
-        legend_out=False,
-        legend="brief",
-    )
-    plt.savefig(f"plots/{exp[2]}/ff_plot.png")
-    plt.close()
-
-    sns.catplot(
-        x=x_axis_name,
-        y="Synthesis Time [hours]",
-        hue="tool",
-        data=melt_syn_time_df,
-        kind="point",
-        markers=["o", "s", "^"],
-        legend_out=False,
-        legend="brief",
-    )
-    plt.savefig(f"plots/{exp[2]}/syn_time_plot.png")
-    plt.close()
-
-    sns.catplot(
-        x=x_axis_name,
-        y="Path Delay [ns]",
-        hue="tool",
-        data=melt_delay_df,
-        kind="point",
-        markers=["o", "s", "^"],
-        legend_out=False,
-        legend="brief",
-    )
-    plt.ylim(0)
-    plt.savefig(f"plots/{exp[2]}/delay_plot.png")
-    plt.close()
-
-    sns.catplot(
-        x=x_axis_name,
-        y="Peak Memory [MB]",
-        hue="tool",
-        data=melt_mem_usage_df,
-        kind="point",
-        markers=["o", "s", "^"],
-        legend_out=False,
-        legend="brief",
-    )
-    plt.ylim(0)
-    plt.savefig(f"plots/{exp[2]}/mem_plot.png")
-    plt.close()
-
-    sns.catplot(
-        x=x_axis_name,
-        y="Throughput [Hz]",
-        hue="tool",
-        data=melt_throughput_df,
-        kind="point",
-        markers=["o", "s", "^"],
-        legend_out=False,
-        legend="brief",
-    )
-    plt.ylim(0)
-    plt.savefig(f"plots/{exp[2]}/throughput_plot.png")
-    plt.close()
-
-    sns.catplot(
-        x=x_axis_name,
-        y="Latency Cycles",
-        hue="tool",
-        data=melt_latency_cycles_df,
-        kind="point",
-        markers=["o", "s", "^"],
-        legend_out=False,
-        legend="brief",
-    )
-    plt.ylim(0)
-    plt.savefig(f"plots/{exp[2]}/latency_cycles_plot.png")
-    plt.close()
-
-    sns.catplot(
-        x=x_axis_name,
-        y="Total Latency [ns]",
-        hue="tool",
-        data=melt_latency_df,
-        kind="point",
-        markers=["o", "s", "^"],
-        legend_out=False,
-        legend="brief",
-    )
-    plt.ylim(0)
-    plt.savefig(f"plots/{exp[2]}/latency_plot.png")
-    plt.close()
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="c4ml_test_runs")
     parser.add_argument(
-        "--experiment_name", "-name", default="", help="Name of the experiment to run."
+        "--exp-name", "-name", default="", help="Name of the experiment to run."
     )
     args = parser.parse_args()
-    if args.experiment_name != "":
-        exp = get_exp_by_name(args.experiment_name)
+    if args.exp_name != "":
+        exp = get_exp_by_name(args.exp_name)
         EXPERIMENTS_MOD = (exp,)
     else:
         EXPERIMENTS_MOD = EXPERIMENTS
     for exp in EXPERIMENTS_MOD:
-        generate_report_for_exp(exp)
+        data = gather_results(exp)
+        if data is None:
+            continue
+        x_axis, x_axis_name = get_x_axis(exp[0])
+        df = pd.DataFrame(
+            columns=(
+                'x_axis',
+                'tool',
+                *FIELDS.keys()
+            ),
+        )
+        df['x_axis'] = x_axis
+        df = pd.concat([
+                df.assign(tool='chisel4ml'),
+                df.assign(tool='hls4ml'),
+                df.assign(tool='finn'),
+            ],
+            ignore_index=True
+        )
+        for col in FIELDS.keys():
+            for tool in ('chisel4ml', 'hls4ml', 'finn'):
+                for ind, xval in enumerate(x_axis):
+                    val = undict(
+                        data[ind],
+                        fields=[tool] + FIELDS[col][tool]
+                    )
+                    cond = 'tool==@tool & x_axis==@xval'
+                    cond_index = df.loc[df.eval(cond)].index
+                    df.loc[cond_index, col] = val
+        
+        sns.set_style("darkgrid", {
+                "axes.facecolor": ".9",
+            }
+        )
+        if not os.path.isdir(f"plots/{exp[2]}"):
+            os.makedirs(f"plots/{exp[2]}")
+
+        df = df.rename(columns={'x_axis': x_axis_name})
+        for col in FIELDS.keys():
+            df = df.rename(columns={col: FIELDS[col]['long_name']})
+            sns.catplot(
+                x=x_axis_name,
+                y=FIELDS[col]['long_name'],
+                hue='tool',
+                data=df,
+                kind='point',
+                markers=['o', 's', '^'],
+                dodge=True,
+                legend_out=False,
+                legend='brief',
+            )
+            plt.ylim(0)
+            plt.savefig(f'plots/{exp[2]}/{col}_plot.png', dpi=400)
+            plt.close()
+        df.to_csv(f'plots/{exp[2]}/{exp[2]}.csv')

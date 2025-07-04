@@ -54,7 +54,8 @@ def train_model(model, train_loader, criterion, optimizer, epochs, device, prune
 
             optimizer.step()
 
-            prune_model_global_unstructured(model, prune_rate)
+            effective_prune_rate = prune_rate * (epoch + 1) / epochs
+            prune_model_global_unstructured(model, effective_prune_rate)
 
             # print statistics
             running_loss += loss.item()
@@ -146,7 +147,7 @@ def train_quant_model(model, model_nobn, train_loader, test_loader, bitwidth, pr
         optimizer=torch.optim.Adam(model.parameters(), lr=0.001),
         epochs=epochs,
         device=device,
-        prune_rate=prune_rate,
+        prune_rate=0.0,
     )
     print_sparsity(model)
 
