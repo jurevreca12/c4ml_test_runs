@@ -41,8 +41,8 @@ def get_total_latency_hls4ml(run):
 
 
 def get_total_latency_finn(run):
-    delay = run["rtlsim_performance"]["latency_cycles"]
-    latency_cycles = run["ooc_synth_and_timing"]["Delay"]
+    latency_cycles = run["rtlsim_performance"]["latency_cycles"]
+    delay = run["ooc_synth_and_timing"]["Delay"]
     total_latency = latency_cycles * delay
     return total_latency
 
@@ -61,11 +61,11 @@ FIELDS = {
         'long_name': 'Generation Time [hours]',
     },
     'lut': {
-        'chisel4ml': ['util', 'CLB Logic', 0, 'Used', int],
-        'hls4ml': ['util', 'CLB Logic', 0, 'Used', int],
-        'finn': ['ooc_synth_and_timing', 'LUT', int],
+        'chisel4ml': ['util', 'CLB Logic', 0, 'Used', float, lambda x: x / 1000, int], # kLUT
+        'hls4ml': ['util', 'CLB Logic', 0, 'Used', float, lambda x: x / 1000, int],
+        'finn': ['ooc_synth_and_timing', 'LUT', float, lambda x: x / 1000, int],
         'assert': 'CLB LUTs*',  # assert that site-type column equals it
-        'long_name': 'Look-Up Tables',
+        'long_name': 'Look-Up Tables [kLUT]',
     },
     'ff': {
         'chisel4ml': ['util', 'CLB Logic', 3, 'Used', int],
@@ -123,10 +123,10 @@ FIELDS = {
         'long_name': 'Initiation Interval',
     },
     'throughput': {
-        'chisel4ml': ['design', 'Path Delay', lambda x: (10**9) / float(x[0:5])],
-        'hls4ml': [get_throughput_hls4ml],
-        'finn': ['ooc_synth_and_timing', 'estimated_throughput_fps', float],
-        'long_name': 'Throughput [Hz]',
+        'chisel4ml': ['design', 'Path Delay', lambda x: (10**9) / float(x[0:5]), lambda x: x / (10**6)],
+        'hls4ml': [get_throughput_hls4ml, lambda x: x / (10**6)],
+        'finn': ['ooc_synth_and_timing', 'estimated_throughput_fps', float, lambda x: x / (10**6)],
+        'long_name': 'Throughput [MHz]',
     },
     'latency_cycles': {
         'chisel4ml': ['info_rpt', 'exact_latency', int],
@@ -214,7 +214,7 @@ def undict(dct, fields):
     return value
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog="c4ml_test_runs")
+    parser = argparse.ArgumentParser(prog="gen_graphs")
     parser.add_argument(
         "--exp-name", "-name", default="", help="Name of the experiment to run."
     )
@@ -277,6 +277,6 @@ if __name__ == '__main__':
                 legend='brief',
             )
             plt.ylim(0)
-            plt.savefig(f'plots/{exp[2]}/{col}_plot.png', dpi=400)
+            plt.savefig(f'plots/{exp[2]}/{col}_plot.pdf', bbox_inches='tight', pad_inches=0)
             plt.close()
         df.to_csv(f'plots/{exp[2]}/{exp[2]}.csv')
