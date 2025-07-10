@@ -10,6 +10,7 @@ from parse_reports import parse_reports
 from parse_reports import parse_finn_reports
 import argparse
 
+FINN_TARGET_CLK_NS = 10
 
 key_to_name_dict = {
     "input_ch": "Input Channels",
@@ -42,7 +43,7 @@ def get_total_latency_hls4ml(run):
 
 def get_total_latency_finn(run):
     latency_cycles = run["rtlsim_performance"]["latency_cycles"]
-    delay = run["ooc_synth_and_timing"]["Delay"]
+    delay = FINN_TARGET_CLK_NS - run["ooc_synth_and_timing"]["WNS"]
     total_latency = latency_cycles * delay
     return total_latency
 
@@ -107,7 +108,7 @@ FIELDS = {
     'path_delay': {
         'chisel4ml': ['design', 'Path Delay', lambda x: float(x[0:5])],
         'hls4ml': ['design', 'Path Delay', lambda x: float(x[0:5])],
-        'finn': ['ooc_synth_and_timing', 'Delay', float],
+        'finn': ['ooc_synth_and_timing', 'WNS', float, lambda x: FINN_TARGET_CLK_NS - x],
         'long_name': 'Path Delay [ns]',
     },
     'peak_mem_usage': {
@@ -259,6 +260,7 @@ if __name__ == '__main__':
                 "axes.facecolor": ".9",
             }
         )
+        sns.set(font_scale=1.3)
         if not os.path.isdir(f"plots/{exp[2]}"):
             os.makedirs(f"plots/{exp[2]}")
 
