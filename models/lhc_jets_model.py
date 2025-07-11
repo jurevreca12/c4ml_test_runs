@@ -123,7 +123,7 @@ def get_lhc_jets_model(bitwidth, use_bn=True):
     model = LHCJetsModel(bitwidth, use_bn)
     return model
 
-def get_lhc_jets_model_float():
+def get_lhc_jets_model_float(use_bn=True):
     """Creates a model for LHC Jets dataset. Based on:
     https://github.com/fastmachinelearning/hls4ml-tutorial
     /blob/main/part1_getting_started.ipynb"""
@@ -133,43 +133,52 @@ def get_lhc_jets_model_float():
         def __init__(self):
             super().__init__()
             self.ishape = (1, 16)
+            self.use_bn = use_bn
             self.linear0 = torch.nn.Linear(
                 in_features=16,
                 out_features=64,
                 bias=True,
             )
-            self.bn0 = torch.nn.BatchNorm1d(64)
+            if self.use_bn:
+                self.bn0 = torch.nn.BatchNorm1d(64)
             self.linear1 = torch.nn.Linear(
                 in_features=64,
                 out_features=32,
                 bias=True,
             )
-            self.bn1 = torch.nn.BatchNorm1d(32)
+            if self.use_bn:
+                self.bn1 = torch.nn.BatchNorm1d(32)
             self.linear2 = torch.nn.Linear(
                 in_features=32,
                 out_features=32,
                 bias=True,
             )
-            self.bn2 = torch.nn.BatchNorm1d(32)
-            self.linear3 = qnn.QuantLinear(
+            if self.use_bn:
+                self.bn2 = torch.nn.BatchNorm1d(32)
+            self.linear3 = torch.nn.Linear(
                 in_features=32,
                 out_features=5,
                 bias=True,
             )
-            self.bn3 = torch.nn.BatchNorm1d(5)
+            if self.use_bn:
+                self.bn3 = torch.nn.BatchNorm1d(5)
 
         def forward(self, x):
             x = self.linear0(x)
-            x = self.bn0(x)
-            x = torch.nn.ReLU(x)
+            if self.use_bn:
+                x = self.bn0(x)
+            x = torch.nn.functional.relu(x)
             x = self.linear1(x)
-            x = self.bn1(x)
-            x = torch.nn.ReLU(x)
+            if self.use_bn:
+                x = self.bn1(x)
+            x = torch.nn.functional.relu(x)
             x = self.linear2(x)
-            x = self.bn2(x)
-            x = torch.nn.ReLU(x)
+            if self.use_bn:
+                x = self.bn2(x)
+            x = torch.nn.functional.relu(x)
             x = self.linear3(x)
-            x = self.bn3(x)
+            if self.use_bn:
+                x = self.bn3(x)
             return x
 
 

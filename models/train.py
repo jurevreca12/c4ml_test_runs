@@ -2,7 +2,9 @@ import torch
 from torch.nn.utils import prune
 import brevitas.nn as qnn
 from models.cnn_model import get_cnn_model
+from models.cnn_model import get_cnn_model_float
 from models.lhc_jets_model import get_lhc_jets_model
+from models.lhc_jets_model import get_lhc_jets_model_float
 from models.mnist_data import get_data_loaders
 from models.lhc_jets_hlf_data import get_lhc_dataset
 
@@ -121,9 +123,44 @@ def train_quantized_mnist_model(bitwidth, prune_rate=0.0):
     )
     return trained_model
 
+def train_float_mnist_model():
+    bitwidth=32
+    prune_rate=0.0
+    model = get_cnn_model_float(use_bn=True)
+    model_nobn = get_cnn_model_float(use_bn=False)
+    train_loader, test_loader = get_data_loaders(batch_size=64)
+    trained_model = train_quant_model(
+        model,
+        model_nobn,
+        train_loader,
+        test_loader,
+        bitwidth,
+        prune_rate,
+        epochs=5
+    )
+    return trained_model
+
+
 def train_quantized_lhc_model(bitwidth, prune_rate=0.0):
     model = get_lhc_jets_model(bitwidth=bitwidth, use_bn=True)
     model_nobn = get_lhc_jets_model(bitwidth=bitwidth, use_bn=False)
+    train_loader, test_loader = get_lhc_dataset(batch_size=512)
+    trained_model, test_data, final_acc = train_quant_model(
+        model,
+        model_nobn,
+        train_loader,
+        test_loader,
+        bitwidth,
+        prune_rate,
+        epochs=5
+    )
+    return trained_model, test_data, final_acc
+
+def train_float_lhc_model():
+    bitwidth=32
+    prune_rate=0.0
+    model = get_lhc_jets_model_float(use_bn=True)
+    model_nobn = get_lhc_jets_model_float(use_bn=False)
     train_loader, test_loader = get_lhc_dataset(batch_size=512)
     trained_model, test_data, final_acc = train_quant_model(
         model,
@@ -162,7 +199,7 @@ def train_quant_model(model, model_nobn, train_loader, test_loader, bitwidth, pr
         for layer in (model.conv0, model.conv1):
             merge_batchnorm(layer.conv, layer.bn)
         for layer in (model.dense0, model.dense1):
-            merge_batchnorm(layer.dense, layer.bn)
+            merge_batchnorm(layer.dense, layer.bn, 'linear')
     else:  # lhc_jets model
         lin_bn_pairs = (
             (model.linear0, model.bn0),
@@ -171,7 +208,7 @@ def train_quant_model(model, model_nobn, train_loader, test_loader, bitwidth, pr
             (model.linear3, model.bn3),
         )
         for lin, bn in lin_bn_pairs:
-            merge_batchnorm(lin, bn)
+            merge_batchnorm(lin, bn, 'linear')
 
     model_nobn.load_state_dict(
         {k: v for k, v in model.state_dict().items() if "bn" not in k}, strict=False
