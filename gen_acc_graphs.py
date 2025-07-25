@@ -8,7 +8,7 @@ from main import get_work_dir
 
 key_to_name_dict = {
     'bitwidth': 'Bitwidth',
-    'prune_rate': 'Prune Rate',
+    'prune_rate': 'Pruning Rate',
 }
 
 def get_x_axis(exp_dict):

@@ -23,7 +23,7 @@ key_to_name_dict = {
     "input_size": "Input Size",
     "kernel_size": "Kernel Size",
     "bitwidth": "Bitwidth",
-    "prune_rate": "Prune Rate",
+    "prune_rate": "Pruning Rate",
 }
 
 
